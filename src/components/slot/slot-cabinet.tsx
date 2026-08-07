@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { BigWinOverlay } from "@/components/slot/big-win-overlay";
 import { BottomBar } from "@/components/slot/bottom-bar";
 import { CreditsHud } from "@/components/slot/credits-hud";
 import { FeatureHud } from "@/components/slot/feature-hud";
@@ -12,6 +11,7 @@ import { MultiplierHud } from "@/components/slot/multiplier-hud";
 import { RankUpOffer } from "@/components/slot/rank-up-offer";
 import { RankWheel } from "@/components/slot/rank-wheel";
 import { SlotGrid } from "@/components/slot/slot-grid";
+import { WinDialog, type WinDialogPayload } from "@/components/slot/win-dialog";
 import { AudioManager } from "@/lib/game/audio";
 import { GAME_CONFIG } from "@/lib/game/config";
 import {
@@ -108,11 +108,7 @@ export function SlotCabinet({
     type: FeatureType;
     spins: number;
   } | null>(null);
-  const [bigWin, setBigWin] = useState<{
-    payout: number;
-    tier?: SpinResult["bigWinTier"];
-    maxWin?: boolean;
-  } | null>(null);
+  const [winDialog, setWinDialog] = useState<WinDialogPayload | null>(null);
   const [rankUpOpen, setRankUpOpen] = useState(false);
   const [rankUpBusy, setRankUpBusy] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -267,16 +263,27 @@ export function SlotCabinet({
         });
       }
 
-      if (spin.bigWinTier || spin.cappedAtMaxWin) {
+      if (spin.payout > 0) {
         setPhase("BIG_WIN");
-        AudioManager.play(spin.cappedAtMaxWin ? "max-win" : "big-win");
-        setBigWin({
+        AudioManager.play(
+          spin.cappedAtMaxWin ? "max-win" : spin.bigWinTier ? "big-win" : "win",
+        );
+        setWinDialog({
           payout: spin.payout,
+          baseWin: spin.baseWin,
+          multiplier: spin.finalMultiplier,
           tier: spin.bigWinTier,
           maxWin: spin.cappedAtMaxWin,
         });
-        await sleep(turboMode ? 500 : 1400, skipRef.current);
-        setBigWin(null);
+        const holdMs = turboMode
+          ? spin.bigWinTier || spin.cappedAtMaxWin
+            ? 700
+            : 420
+          : spin.bigWinTier || spin.cappedAtMaxWin
+            ? 1800
+            : 1100;
+        await sleep(holdMs, skipRef.current);
+        setWinDialog(null);
       }
 
       setBalance(spin.balanceAfter);
@@ -379,12 +386,12 @@ export function SlotCabinet({
   useEffect(() => {
     if (!featureSession) return;
     if (phase !== "FEATURE_SPINNING") return;
-    if (pendingIntro || rankUpOpen || bigWin) return;
+    if (pendingIntro || rankUpOpen || winDialog) return;
     const timer = setTimeout(() => {
       void requestSpin();
     }, 600);
     return () => clearTimeout(timer);
-  }, [featureSession, phase, pendingIntro, rankUpOpen, bigWin, requestSpin]);
+  }, [featureSession, phase, pendingIntro, rankUpOpen, winDialog, requestSpin]);
 
   useEffect(() => {
     setBalance(credits);
@@ -617,12 +624,17 @@ export function SlotCabinet({
         />
       ) : null}
 
-      {bigWin ? (
-        <BigWinOverlay
-          tier={bigWin.tier}
-          payout={bigWin.payout}
-          maxWin={bigWin.maxWin}
-          onDone={() => setBigWin(null)}
+      {winDialog ? (
+        <WinDialog
+          payout={winDialog.payout}
+          baseWin={winDialog.baseWin}
+          multiplier={winDialog.multiplier}
+          tier={winDialog.tier}
+          maxWin={winDialog.maxWin}
+          onDone={() => {
+            skipRef.current.skipped = true;
+            setWinDialog(null);
+          }}
         />
       ) : null}
 

@@ -16,6 +16,7 @@ export type SoundId =
   | "feature-trigger"
   | "feature-loop"
   | "rank-up"
+  | "win"
   | "big-win"
   | "max-win";
 
@@ -29,6 +30,7 @@ const FREQ: Partial<Record<SoundId, number>> = {
   "multiplier-multiply": 780,
   "feature-trigger": 340,
   "rank-up": 500,
+  win: 700,
   "big-win": 880,
   "max-win": 990,
 };
