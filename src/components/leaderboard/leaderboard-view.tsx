@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DiscordSignInButton } from "@/components/auth/discord-sign-in-button";
+import { formatEuro } from "@/lib/format-euro";
 import {
   formatMetricValue,
   LEADERBOARD_METRICS,
@@ -245,24 +246,15 @@ export function LeaderboardView() {
               </Link>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <StatCell label="Credits" value={me.credits.toLocaleString()} />
+              <StatCell label="Balance" value={formatEuro(me.credits)} />
               <StatCell label="Spins" value={me.totalSpins.toLocaleString()} />
-              <StatCell
-                label="Biggest Win"
-                value={me.biggestWin.toLocaleString()}
-              />
+              <StatCell label="Biggest Win" value={formatEuro(me.biggestWin)} />
               <StatCell
                 label="Highest Mult"
                 value={`${Number(me.highestMultiplier.toFixed(2))}×`}
               />
-              <StatCell
-                label="Total Won"
-                value={me.totalWon.toLocaleString()}
-              />
-              <StatCell
-                label="Wagered"
-                value={me.totalWagered.toLocaleString()}
-              />
+              <StatCell label="Total Won" value={formatEuro(me.totalWon)} />
+              <StatCell label="Wagered" value={formatEuro(me.totalWagered)} />
             </div>
           </>
         ) : (

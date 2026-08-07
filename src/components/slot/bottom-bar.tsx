@@ -1,5 +1,6 @@
 "use client";
 
+import { formatEuro } from "@/lib/format-euro";
 import { GAME_CONFIG } from "@/lib/game/config";
 import type { TurboMode } from "@/lib/game/state";
 
@@ -60,7 +61,7 @@ export function BottomBar({
             −
           </button>
           <div className="min-w-[4.5rem] rounded-md border border-cyan-400/25 bg-cyan-950/30 px-3 py-1.5 text-center font-mono text-lg text-cyan-100">
-            {bet}
+            {formatEuro(bet)}
           </div>
           <button
             type="button"
@@ -118,7 +119,7 @@ export function BottomBar({
         </div>
       </div>
       <p className="mt-2 text-center text-[10px] text-white/35">
-        Virtual credits only · No real-money gambling
+        Virtual € only · No real-money gambling
       </p>
     </div>
   );

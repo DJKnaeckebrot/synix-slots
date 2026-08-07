@@ -17,7 +17,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Rank Rush · Team Synix",
   description:
-    "Free community E-Sports rank slot. Virtual credits only — no real-money gambling.",
+    "Free community E-Sports rank slot. Virtual € only — no real-money gambling.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

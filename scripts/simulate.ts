@@ -18,6 +18,16 @@ function parseSpins(argv: string[]): number {
   return 1_000_000;
 }
 
+function parseBet(argv: string[]): number {
+  const idx = argv.indexOf("--bet");
+  if (idx >= 0 && argv[idx + 1]) {
+    const n = Number(argv[idx + 1]);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  // Default 10 — matches typical play better than bet 1 (fractional pays round away).
+  return 10;
+}
+
 function median(sorted: number[]): number {
   if (sorted.length === 0) return 0;
   const mid = Math.floor(sorted.length / 2);
@@ -37,8 +47,9 @@ function bucket(multiple: number): string {
   return "500x+";
 }
 
-const spins = parseSpins(process.argv.slice(2));
-const bet = 1;
+const argv = process.argv.slice(2);
+const spins = parseSpins(argv);
+const bet = parseBet(argv);
 const buckets: Record<string, number> = {
   "0x": 0,
   "0–1x": 0,

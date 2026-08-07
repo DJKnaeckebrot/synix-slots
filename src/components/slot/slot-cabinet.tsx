@@ -16,6 +16,7 @@ import {
 import { RankWheel } from "@/components/slot/rank-wheel";
 import { SlotGrid } from "@/components/slot/slot-grid";
 import { WinDialog, type WinDialogPayload } from "@/components/slot/win-dialog";
+import { formatEuro } from "@/lib/format-euro";
 import { AudioManager } from "@/lib/game/audio";
 import { GAME_CONFIG } from "@/lib/game/config";
 import {
@@ -318,7 +319,7 @@ export function SlotCabinet({
       setDisplayedMultiplier(spin.finalMultiplier);
 
       if (spin.payout > 0) {
-        setMessage(`+${spin.payout.toLocaleString()} credits`);
+        setMessage(`+${formatEuro(spin.payout)}`);
       } else if (!spin.feature?.triggered) {
         setMessage("No win");
       }
@@ -332,12 +333,12 @@ export function SlotCabinet({
 
   const requestSpin = useCallback(async () => {
     if (!authenticated) {
-      setMessage("Sign in with Discord to play with virtual credits.");
+      setMessage("Sign in with Discord to play with virtual €.");
       return;
     }
     if (phase !== "IDLE" && phase !== "FEATURE_SPINNING") return;
     if (balance < bet) {
-      setMessage("Insufficient credits.");
+      setMessage("Insufficient balance.");
       setAutoplayRemaining(0);
       return;
     }
@@ -564,7 +565,7 @@ export function SlotCabinet({
               <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 sm:text-xs">
                 Last
                 <div className="mt-1 font-mono text-base text-cyan-100 sm:text-lg">
-                  {lastPayout.toLocaleString()}
+                  {formatEuro(lastPayout)}
                 </div>
               </div>
             ) : (

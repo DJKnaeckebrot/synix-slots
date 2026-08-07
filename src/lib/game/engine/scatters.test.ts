@@ -25,7 +25,7 @@ describe("evaluateScatters", () => {
     expect(result.fennecCount).toBe(3);
     expect(result.wins).toHaveLength(1);
     expect(result.wins[0].symbol).toBe("fennec");
-    expect(result.totalWin).toBe(Math.round(10 * 1.2));
+    expect(result.totalWin).toBe(Math.round(10 * 0.8));
     expect(result.freeGames).toBe(false);
   });
 

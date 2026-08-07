@@ -54,7 +54,7 @@ export function RankUpOffer({ current, onKeep, onTry, busy }: Props) {
           {GAME_CONFIG.featureMeta[next].title}
         </p>
         <p className="mt-2 text-xs text-white/40">
-          Virtual credits only. Outcome is determined server-side.
+          Virtual € only. Outcome is determined server-side.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button

@@ -162,7 +162,7 @@ export function WinDialog({
           transition={{ delay: 0.18 }}
         >
           <p className="text-[10px] uppercase tracking-[0.35em] text-white/40">
-            Credits
+            Win
           </p>
           <p
             className={[
@@ -176,6 +176,7 @@ export function WinDialog({
           >
             +
             <CountUp value={payout} />
+            <span className="ml-1 text-2xl opacity-70 sm:text-3xl">€</span>
           </p>
         </motion.div>
 

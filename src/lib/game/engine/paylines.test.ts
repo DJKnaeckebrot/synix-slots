@@ -24,8 +24,8 @@ describe("evaluatePaylines", () => {
     expect(top).toBeDefined();
     expect(top?.symbol).toBe("gold");
     expect(top?.count).toBe(5);
-    // gold 5-oak = 3 × bet → 30
-    expect(top?.win).toBe(30);
+    // gold 5-oak = 2.8 × bet → 28
+    expect(top?.win).toBe(28);
   });
 
   it("stops streak on wheel symbol", () => {
@@ -51,8 +51,8 @@ describe("evaluatePaylines", () => {
     const wins = evaluatePaylines(grid, 10);
     const top = wins.find((w) => w.paylineId === 0);
     expect(top?.count).toBe(3);
-    // diamond 3 = 1 × 10 = 10
-    expect(top?.win).toBe(10);
+    // diamond 3 = 0.88 × 10 = 9 (rounded)
+    expect(top?.win).toBe(9);
     expect(sumBaseWin(wins)).toBeGreaterThanOrEqual(8);
   });
 });

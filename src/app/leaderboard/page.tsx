@@ -4,7 +4,7 @@ import { GAME_CONFIG } from "@/lib/game/config";
 
 export const metadata = {
   title: `Leaderboard · ${GAME_CONFIG.name}`,
-  description: "Credits, biggest wins, and highest multipliers.",
+  description: "Balance, biggest wins, and highest multipliers.",
 };
 
 export default function LeaderboardPage() {
@@ -27,7 +27,7 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
           <p className="mt-3 max-w-xl text-sm text-white/55 sm:text-base">
-            Who&apos;s stacking credits, hitting the biggest payouts, and
+            Who&apos;s stacking virtual €, hitting the biggest payouts, and
             landing the wildest multipliers.
           </p>
         </div>

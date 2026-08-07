@@ -41,7 +41,7 @@ export function isLeaderboardMetric(value: string): value is LeaderboardMetric {
 export function metricLabel(metric: LeaderboardMetric): string {
   switch (metric) {
     case "credits":
-      return "Credits";
+      return "€";
     case "biggest_win":
       return "Biggest Win";
     case "highest_multiplier":
@@ -56,5 +56,5 @@ export function formatMetricValue(
   if (metric === "highest_multiplier") {
     return `${Number(value.toFixed(2))}×`;
   }
-  return Math.floor(value).toLocaleString();
+  return `€${Math.floor(value).toLocaleString("de-DE")}`;
 }

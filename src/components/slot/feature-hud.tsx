@@ -1,5 +1,6 @@
 "use client";
 
+import { formatEuro } from "@/lib/format-euro";
 import { GAME_CONFIG } from "@/lib/game/config";
 import type { FeatureType } from "@/lib/game/types";
 
@@ -43,7 +44,7 @@ export function FeatureHud({
           Feature Win
         </p>
         <p className="mt-1 font-mono text-lg text-cyan-100">
-          {featureWin.toLocaleString()}
+          {formatEuro(featureWin)}
         </p>
       </div>
       <div>

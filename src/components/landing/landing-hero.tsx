@@ -22,7 +22,7 @@ export function LandingHero({ authError }: Props) {
         </h1>
         <p className="mt-5 max-w-xl text-base text-white/65 sm:text-lg">
           Climb the ranks on a 5×4 tournament slot. Spin Rank Wheels, stack
-          multipliers, and chase Road to SSL — with virtual credits only.
+          multipliers, and chase Road to SSL — with virtual € only.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4">
@@ -56,7 +56,7 @@ export function LandingHero({ authError }: Props) {
         ) : null}
 
         <p className="mt-12 max-w-md text-xs leading-relaxed text-white/40">
-          {GAME_CONFIG.disclaimer} No deposits. No withdrawals. Credits have no
+          {GAME_CONFIG.disclaimer} No deposits. No withdrawals. Virtual € has no
           monetary value.
         </p>
       </main>

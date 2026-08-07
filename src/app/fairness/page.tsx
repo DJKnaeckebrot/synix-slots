@@ -10,7 +10,7 @@ import { isPaySymbol, isScatterSymbol } from "@/lib/game/symbols";
 
 export const metadata = {
   title: "Fairness · Rank Rush",
-  description: "Virtual credits, server-side RNG, and game mathematics.",
+  description: "Virtual €, server-side RNG, and game mathematics.",
 };
 
 function weightTotal(items: { weight: number }[]) {

@@ -22,8 +22,7 @@ import type {
 export const GAME_CONFIG = {
   version: 1,
   name: "Rank Rush",
-  disclaimer:
-    "Free community game. Virtual credits only. No real-money gambling.",
+  disclaimer: "Free community game. Virtual € only. No real-money gambling.",
 
   grid: {
     reels: 5,
@@ -49,9 +48,9 @@ export const GAME_CONFIG = {
 
   baseGame: {
     /** Independent chance a Rank Wheel lands on each eligible reel (0, 2, 4). */
-    wheelChance: 0.1,
+    wheelChance: 0.075,
     /** Given a wheel lands, chance it is elite. */
-    eliteChance: 0.07,
+    eliteChance: 0.055,
   },
 
   normalWheel: {
@@ -80,7 +79,8 @@ export const GAME_CONFIG = {
       },
       { id: "n_max", kind: "max_win", label: "MAX WIN" },
     ] satisfies WheelSegment[],
-    weights: [18, 16, 12, 9, 5, 2, 11, 7, 3, 2, 3, 1, 1] as const,
+    // Heavier low adds; rare features / max.
+    weights: [26, 20, 14, 8, 4, 1, 12, 6, 2, 1, 2, 1, 1] as const,
   },
 
   eliteWheel: {
@@ -99,7 +99,7 @@ export const GAME_CONFIG = {
       { id: "e_mul_10", kind: "multiply", value: 10, label: "×10" },
       { id: "e_max", kind: "max_win", label: "MAX WIN" },
     ] satisfies WheelSegment[],
-    weights: [14, 12, 10, 8, 5, 3, 1, 10, 8, 5, 3, 2, 2] as const,
+    weights: [20, 16, 12, 8, 4, 2, 1, 12, 8, 4, 2, 1, 1] as const,
   },
 
   rankUpWheel: {
@@ -109,32 +109,32 @@ export const GAME_CONFIG = {
       { id: "ru_rank_up", kind: "rank_up", label: "RANK UP" },
     ] satisfies WheelSegment[],
     // Mostly end; tiny extension; rare true rank up.
-    weights: [8, 78, 6] as const,
+    weights: [6, 84, 4] as const,
   },
 
   features: {
     overtime: {
-      spins: 4,
-      wheelChance: 0.22,
-      eliteChance: 0.1,
+      spins: 3,
+      wheelChance: 0.18,
+      eliteChance: 0.08,
     },
     champion: {
-      spins: 5,
-      wheelChance: 0.28,
-      eliteChance: 0.15,
+      spins: 4,
+      wheelChance: 0.22,
+      eliteChance: 0.12,
     },
     grand_champion: {
-      spins: 6,
-      wheelChance: 0.35,
-      eliteChance: 0.85,
+      spins: 5,
+      wheelChance: 0.28,
+      eliteChance: 0.8,
       disableNormalWheels: true,
     },
     road_to_ssl: {
-      spins: 6,
-      wheelChance: 0.4,
+      spins: 5,
+      wheelChance: 0.32,
       eliteChance: 1,
       guaranteeElite: true,
-      extraEliteChance: 0.35,
+      extraEliteChance: 0.28,
       disableNormalWheels: true,
     },
   } as Record<FeatureType, FeatureModeConfig>,
@@ -168,13 +168,13 @@ export const GAME_CONFIG = {
    */
   featureTriggers: {
     /** Elite FEATURE (Champion) in base → Grand Champion chance. */
-    eliteFeatureGrandChampionChance: 0.35,
+    eliteFeatureGrandChampionChance: 0.2,
     /** Three wheels in base → Road to SSL chance. */
-    threeWheelRoadToSslChance: 0.04,
+    threeWheelRoadToSslChance: 0.02,
     /** Two elite wheels → Grand Champion. */
-    twoEliteGrandChampionChance: 0.25,
+    twoEliteGrandChampionChance: 0.15,
     /** Two wheels (no series feature) → Overtime chance. */
-    twoWheelOvertimeChance: 0.08,
+    twoWheelOvertimeChance: 0.05,
   },
 
   bigWinThresholds: [

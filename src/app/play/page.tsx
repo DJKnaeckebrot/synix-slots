@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: `${GAME_CONFIG.name} · Play`,
-  description: "E-Sports rank slot — virtual credits only.",
+  description: "E-Sports rank slot — virtual € only.",
 };
 
 export default async function PlayPage() {
