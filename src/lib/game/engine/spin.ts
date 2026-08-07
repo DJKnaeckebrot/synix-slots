@@ -26,6 +26,7 @@ import type {
   WheelSegment,
 } from "../types";
 import { evaluatePaylines, sumBaseWin } from "./paylines";
+import { evaluateScatters } from "./scatters";
 
 export type DevSpinOverride = {
   forceWheelReels?: WheelReelIndex[];
@@ -159,6 +160,8 @@ function resolveFeatureTrigger(args: {
   segments: WheelSegment[];
   randomIntFn: RandomIntFn;
   forceFeature?: FeatureType;
+  /** Octane scatter free-games trigger. */
+  scatterFreeGames?: boolean;
 }): FeatureState {
   if (args.forceFeature) {
     return {
@@ -256,6 +259,15 @@ function resolveFeatureTrigger(args: {
     };
   }
 
+  // Octane scatter: 3+ anywhere → Overtime free games.
+  if (args.scatterFreeGames) {
+    return {
+      triggered: true,
+      type: "overtime",
+      spinsAwarded: GAME_CONFIG.features.overtime.spins,
+    };
+  }
+
   return { triggered: false };
 }
 
@@ -282,10 +294,12 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
     throw new Error("insufficient_credits");
   }
 
-  // Pay grid first — wheels only stamp on after a real line win (or dev force).
+  // Pay + scatter grid first — wheels only stamp after a real win (or dev force).
   const grid = buildBaseGrid(randomIntFn);
   const paylines = evaluatePaylines(grid, bet);
-  const baseWin = sumBaseWin(paylines);
+  const scatters = evaluateScatters(grid, bet);
+  const lineWin = sumBaseWin(paylines);
+  const baseWin = lineWin + scatters.totalWin;
 
   const hasForceWheels = Boolean(
     override?.forceWheelReels?.length || override?.forceEliteReels?.length,
@@ -344,7 +358,7 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
       ? 1
       : 0;
 
-  // Wheels require a line win in production; forced wheels with baseWin 0 pay nothing.
+  // Wheels require a win in production; forced wheels with baseWin 0 pay nothing.
   const rawPayout =
     hasWheels && baseWin > 0
       ? Math.floor(baseWin * effectiveMultiplier)
@@ -377,6 +391,7 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
     segments: resolvedSegments,
     randomIntFn,
     forceFeature: override?.forceFeature,
+    scatterFreeGames: scatters.freeGames,
   });
 
   const balanceAfter = balanceBefore - debit + payout;
@@ -388,6 +403,10 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
     grid,
     bet,
     paylines,
+    scatters:
+      scatters.fennecCount > 0 || scatters.octaneCount > 0
+        ? scatters
+        : undefined,
     baseWin,
     wheels,
     finalMultiplier: Number(finalMultiplier.toFixed(4)),

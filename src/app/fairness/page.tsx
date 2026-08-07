@@ -6,6 +6,7 @@ import {
   getSymbolWeights,
 } from "@/lib/game/config";
 import { PAYLINES } from "@/lib/game/paylines";
+import { isPaySymbol, isScatterSymbol } from "@/lib/game/symbols";
 
 export const metadata = {
   title: "Fairness · Rank Rush",
@@ -19,6 +20,8 @@ function weightTotal(items: { weight: number }[]) {
 export default function FairnessPage() {
   const symbols = getSymbolWeights();
   const symbolTotal = weightTotal(symbols);
+  const payRows = symbols.filter((s) => isPaySymbol(s.item));
+  const scatterRows = symbols.filter((s) => isScatterSymbol(s.item));
   const normal = getNormalWheelWeighted();
   const elite = getEliteWheelWeighted();
   const normalTotal = weightTotal(normal);
@@ -80,7 +83,17 @@ export default function FairnessPage() {
           <h2 className="text-lg font-semibold text-cyan-100">Limits</h2>
           <ul className="list-disc space-y-1 pl-5 text-sm text-white/55">
             <li>Max win: {GAME_CONFIG.maxWin.toLocaleString()}× bet</li>
-            <li>Rank Wheels only land when there is a line win</li>
+            <li>Rank Wheels only land when there is a win (lines or Fennec)</li>
+            <li>
+              Fennec: combo scatter — pays 3 / 4 / 5 anywhere (
+              {GAME_CONFIG.scatters.fennec.payouts?.[3]} /{" "}
+              {GAME_CONFIG.scatters.fennec.payouts?.[4]} /{" "}
+              {GAME_CONFIG.scatters.fennec.payouts?.[5]}× bet)
+            </li>
+            <li>
+              Octane: free-games scatter —{" "}
+              {GAME_CONFIG.scatters.octane.freeGamesAt}+ anywhere → Overtime
+            </li>
             <li>Paylines: {PAYLINES.length} fixed left-to-right</li>
             <li>
               Grid: {GAME_CONFIG.grid.reels}×{GAME_CONFIG.grid.rows}
@@ -104,7 +117,8 @@ export default function FairnessPage() {
                 </tr>
               </thead>
               <tbody>
-                {symbols.map(({ item, weight }) => {
+                {payRows.map(({ item, weight }) => {
+                  if (!isPaySymbol(item)) return null;
                   const def = GAME_CONFIG.symbols[item];
                   return (
                     <tr key={item} className="border-t border-white/5">
@@ -115,6 +129,48 @@ export default function FairnessPage() {
                       </td>
                       <td className="px-3 py-2 font-mono text-white/60">
                         {def.payouts[3]} / {def.payouts[4]} / {def.payouts[5]}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-cyan-100">
+            Scatters (relative)
+          </h2>
+          <div className="overflow-x-auto rounded-lg border border-white/10">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white/5 text-white/50">
+                <tr>
+                  <th className="px-3 py-2">Scatter</th>
+                  <th className="px-3 py-2">Role</th>
+                  <th className="px-3 py-2">Weight</th>
+                  <th className="px-3 py-2">Approx %</th>
+                  <th className="px-3 py-2">Effect</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scatterRows.map(({ item, weight }) => {
+                  if (!isScatterSymbol(item)) return null;
+                  const def = GAME_CONFIG.scatters[item];
+                  return (
+                    <tr key={item} className="border-t border-white/5">
+                      <td className="px-3 py-2">{def.label}</td>
+                      <td className="px-3 py-2 capitalize text-white/60">
+                        {def.role.replace("_", " ")}
+                      </td>
+                      <td className="px-3 py-2 font-mono">{weight}</td>
+                      <td className="px-3 py-2 font-mono">
+                        {((weight / symbolTotal) * 100).toFixed(2)}%
+                      </td>
+                      <td className="px-3 py-2 font-mono text-white/60">
+                        {def.payouts
+                          ? `${def.payouts[3]} / ${def.payouts[4]} / ${def.payouts[5]}×`
+                          : `${def.freeGamesAt}+ → Overtime`}
                       </td>
                     </tr>
                   );

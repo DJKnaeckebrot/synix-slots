@@ -3,8 +3,13 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
-import { isPaySymbol, SYMBOLS } from "@/lib/game/symbols";
-import type { PaySymbolId, SymbolId } from "@/lib/game/types";
+import {
+  isPaySymbol,
+  isScatterSymbol,
+  SCATTERS,
+  SYMBOLS,
+} from "@/lib/game/symbols";
+import type { PaySymbolId, ScatterSymbolId, SymbolId } from "@/lib/game/types";
 
 type Props = {
   symbol: SymbolId;
@@ -220,6 +225,92 @@ function WheelCell({ elite }: { elite: boolean }) {
   );
 }
 
+function ScatterPlaceholder({ id }: { id: ScatterSymbolId }) {
+  const def = SCATTERS[id];
+  return (
+    <div
+      className="flex h-full w-full flex-col items-center justify-center gap-1"
+      style={{
+        background: `radial-gradient(circle at 35% 28%, ${def.color}55, #080d16 68%)`,
+      }}
+    >
+      <span
+        className="text-[9px] font-bold uppercase tracking-[0.14em] sm:text-[10px]"
+        style={{ color: def.color }}
+      >
+        {def.label}
+      </span>
+      <span className="text-[8px] uppercase tracking-wider text-white/45">
+        {def.role === "free_games" ? "Free" : "Combo"}
+      </span>
+    </div>
+  );
+}
+
+function ScatterIcon({
+  id,
+  highlighted,
+}: {
+  id: ScatterSymbolId;
+  highlighted: boolean;
+}) {
+  const def = SCATTERS[id];
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 70% at 50% 38%, ${def.color}40 0%, transparent 55%),
+            linear-gradient(165deg, #121a28 0%, #070b14 55%, #05070e 100%)
+          `,
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+      <div
+        className="absolute left-1/2 top-1.5 z-[2] -translate-x-1/2 rounded px-1 py-px text-[7px] font-bold uppercase tracking-wider text-black/80 sm:text-[8px]"
+        style={{ backgroundColor: def.color }}
+      >
+        SCATTER
+      </div>
+      {failed ? (
+        <ScatterPlaceholder id={id} />
+      ) : (
+        <motion.div
+          className="absolute inset-0"
+          animate={highlighted ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          transition={
+            highlighted
+              ? {
+                  duration: 0.85,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }
+              : { duration: 0.2 }
+          }
+        >
+          <Image
+            src={def.assetPath}
+            alt={def.label}
+            fill
+            sizes="(max-width: 640px) 18vw, 96px"
+            className="object-contain p-[10%] drop-shadow-[0_4px_12px_rgba(0,0,0,0.65)]"
+            style={{
+              filter: highlighted
+                ? `drop-shadow(0 0 12px ${def.color}cc)`
+                : `drop-shadow(0 0 6px ${def.color}66)`,
+            }}
+            draggable={false}
+            onError={() => setFailed(true)}
+          />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 export function SymbolCell({
   symbol,
   highlighted = false,
@@ -227,8 +318,11 @@ export function SymbolCell({
 }: Props) {
   const isWheel = symbol === "rank_wheel" || symbol === "elite_rank_wheel";
   const pay = isPaySymbol(symbol) ? SYMBOLS[symbol] : null;
+  const scatter = isScatterSymbol(symbol) ? SCATTERS[symbol] : null;
   const borderColor =
-    pay?.color ?? (symbol === "elite_rank_wheel" ? "#e879f9" : "#22d3ee");
+    pay?.color ??
+    scatter?.color ??
+    (symbol === "elite_rank_wheel" ? "#e879f9" : "#22d3ee");
 
   return (
     <motion.div
@@ -262,7 +356,6 @@ export function SymbolCell({
         background: "#080c14",
       }}
     >
-      {/* Inner frame */}
       <div
         className="pointer-events-none absolute inset-[1px] z-[2] rounded-[7px]"
         style={{
@@ -276,6 +369,8 @@ export function SymbolCell({
         <WheelCell elite={symbol === "elite_rank_wheel"} />
       ) : isPaySymbol(symbol) ? (
         <RankIcon id={symbol} highlighted={highlighted} />
+      ) : isScatterSymbol(symbol) ? (
+        <ScatterIcon id={symbol} highlighted={highlighted} />
       ) : (
         <div className="h-full w-full bg-zinc-800" />
       )}

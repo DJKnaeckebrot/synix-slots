@@ -1,5 +1,5 @@
 import { PAYLINES } from "./paylines";
-import { SYMBOLS } from "./symbols";
+import { SCATTERS, SYMBOLS } from "./symbols";
 import type {
   BigWinThreshold,
   FeatureModeConfig,
@@ -44,6 +44,7 @@ export const GAME_CONFIG = {
   lineWinUsesImplicitOne: true as const,
 
   symbols: SYMBOLS,
+  scatters: SCATTERS,
   paylines: PAYLINES,
 
   baseGame: {
@@ -227,12 +228,17 @@ export function getRankUpWheelWeighted(): WeightedItem<WheelSegment>[] {
 }
 
 export function getSymbolWeights(): WeightedItem<
-  keyof typeof GAME_CONFIG.symbols
+  keyof typeof GAME_CONFIG.symbols | keyof typeof GAME_CONFIG.scatters
 >[] {
-  return Object.values(GAME_CONFIG.symbols).map((symbol) => ({
+  const pays = Object.values(GAME_CONFIG.symbols).map((symbol) => ({
     item: symbol.id,
     weight: symbol.weight,
   }));
+  const scatters = Object.values(GAME_CONFIG.scatters).map((symbol) => ({
+    item: symbol.id,
+    weight: symbol.weight,
+  }));
+  return [...pays, ...scatters];
 }
 
 /** Resolve big-win tier for a payout / bet ratio (highest matching threshold). */

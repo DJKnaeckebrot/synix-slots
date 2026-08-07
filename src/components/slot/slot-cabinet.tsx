@@ -178,8 +178,21 @@ export function SlotCabinet({
       await sleep(turboMode ? 80 : 200, skipRef.current);
 
       setPhase("CHECKING_LINES");
-      if (spin.paylines.length > 0) {
-        setHighlightedPositions(spin.paylines.flatMap((p) => p.positions));
+      const scatterHighlights = spin.scatters
+        ? [
+            ...spin.scatters.wins.flatMap((w) => w.positions),
+            ...(spin.scatters.freeGames
+              ? spin.scatters.positions.filter(
+                  ([reel, row]) => spin.grid[reel]?.[row] === "octane",
+                )
+              : []),
+          ]
+        : [];
+      if (spin.paylines.length > 0 || scatterHighlights.length > 0) {
+        setHighlightedPositions([
+          ...spin.paylines.flatMap((p) => p.positions),
+          ...scatterHighlights,
+        ]);
         await sleep(turboMode ? 200 : 700, skipRef.current);
       }
 
@@ -228,6 +241,9 @@ export function SlotCabinet({
         setPhase("FEATURE_TRIGGER");
         AudioManager.play("feature-trigger");
         setAutoplayRemaining(0);
+        if (spin.scatters?.freeGames && spin.feature.type === "overtime") {
+          setMessage(`Octane ×${spin.scatters.octaneCount} · FREE GAMES`);
+        }
         const spins = spin.feature.spinsAwarded ?? 10;
         setPendingIntro({
           type: spin.feature.type,

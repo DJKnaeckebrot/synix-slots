@@ -1,5 +1,5 @@
-/** Rank / pay symbols and special wheel markers. */
-export type SymbolId =
+/** Rank / pay symbols, scatters, and special wheel markers. */
+export type PaySymbolId =
   | "bronze"
   | "silver"
   | "gold"
@@ -7,11 +7,15 @@ export type SymbolId =
   | "diamond"
   | "champion"
   | "grand_champion"
-  | "ssl"
+  | "ssl";
+
+export type ScatterSymbolId = "fennec" | "octane";
+
+export type SymbolId =
+  | PaySymbolId
+  | ScatterSymbolId
   | "rank_wheel"
   | "elite_rank_wheel";
-
-export type PaySymbolId = Exclude<SymbolId, "rank_wheel" | "elite_rank_wheel">;
 
 export type FeatureType =
   | "overtime"
@@ -69,6 +73,24 @@ export interface WinningPayline {
   win: number;
 }
 
+export interface ScatterWin {
+  symbol: ScatterSymbolId;
+  count: 3 | 4 | 5;
+  positions: [number, number][];
+  win: number;
+}
+
+export interface ScatterResult {
+  wins: ScatterWin[];
+  /** Total scatter credits before multiplier. */
+  totalWin: number;
+  fennecCount: number;
+  octaneCount: number;
+  /** Octane free-games trigger (base game). */
+  freeGames: boolean;
+  positions: [number, number][];
+}
+
 export interface FeatureState {
   triggered: boolean;
   type?: FeatureType;
@@ -87,6 +109,7 @@ export interface SpinResult {
   grid: SymbolId[][];
   bet: number;
   paylines: WinningPayline[];
+  scatters?: ScatterResult;
   baseWin: number;
   wheels: WheelResult[];
   finalMultiplier: number;
@@ -103,6 +126,21 @@ export interface SymbolDefinition {
   weight: number;
   /** Payout as multiples of bet for 3 / 4 / 5 of a kind. */
   payouts: { 3: number; 4: number; 5: number };
+  assetPath: string;
+  color: string;
+}
+
+export type ScatterRole = "combo" | "free_games";
+
+export interface ScatterDefinition {
+  id: ScatterSymbolId;
+  label: string;
+  weight: number;
+  role: ScatterRole;
+  /** Combo scatter pays for 3 / 4 / 5 anywhere (multiples of bet). */
+  payouts?: { 3: number; 4: number; 5: number };
+  /** Min count anywhere to trigger free games. */
+  freeGamesAt?: number;
   assetPath: string;
   color: string;
 }

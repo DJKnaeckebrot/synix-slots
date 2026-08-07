@@ -1,4 +1,9 @@
-import type { PaySymbolId, SymbolDefinition } from "./types";
+import type {
+  PaySymbolId,
+  ScatterDefinition,
+  ScatterSymbolId,
+  SymbolDefinition,
+} from "./types";
 
 export const PAY_SYMBOL_IDS: PaySymbolId[] = [
   "bronze",
@@ -10,6 +15,8 @@ export const PAY_SYMBOL_IDS: PaySymbolId[] = [
   "grand_champion",
   "ssl",
 ];
+
+export const SCATTER_SYMBOL_IDS: ScatterSymbolId[] = ["fennec", "octane"];
 
 /** Placeholder paytable — re-tune via `pnpm simulate` toward ~94–96% RTP. */
 export const SYMBOLS: Record<PaySymbolId, SymbolDefinition> = {
@@ -79,8 +86,40 @@ export const SYMBOLS: Record<PaySymbolId, SymbolDefinition> = {
   },
 };
 
+/**
+ * Scatters land anywhere (not payline-bound).
+ * - Fennec: combo scatter — pays 3 / 4 / 5 anywhere
+ * - Octane: free-games scatter — 3+ triggers Overtime (base game)
+ *
+ * Drop icons at the assetPath (png or webp).
+ */
+export const SCATTERS: Record<ScatterSymbolId, ScatterDefinition> = {
+  fennec: {
+    id: "fennec",
+    label: "Fennec",
+    weight: 14,
+    role: "combo",
+    payouts: { 3: 1.2, 4: 4, 5: 15 },
+    assetPath: "/scatters/fennec.png",
+    color: "#f59e0b",
+  },
+  octane: {
+    id: "octane",
+    label: "Octane",
+    weight: 9,
+    role: "free_games",
+    freeGamesAt: 3,
+    assetPath: "/scatters/octane.png",
+    color: "#38bdf8",
+  },
+};
+
 export function isPaySymbol(id: string): id is PaySymbolId {
   return id in SYMBOLS;
+}
+
+export function isScatterSymbol(id: string): id is ScatterSymbolId {
+  return id in SCATTERS;
 }
 
 export function isWheelSymbol(

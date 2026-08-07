@@ -15,6 +15,7 @@ export type {
 } from "./engine";
 export {
   evaluatePaylines,
+  evaluateScatters,
   generateSpin,
   sumBaseWin,
 } from "./engine";
@@ -39,8 +40,11 @@ export {
 } from "./state";
 export {
   isPaySymbol,
+  isScatterSymbol,
   isWheelSymbol,
   PAY_SYMBOL_IDS,
+  SCATTER_SYMBOL_IDS,
+  SCATTERS,
   SYMBOLS,
 } from "./symbols";
 export type {
@@ -50,6 +54,11 @@ export type {
   FeatureState,
   FeatureType,
   PaySymbolId,
+  ScatterDefinition,
+  ScatterResult,
+  ScatterRole,
+  ScatterSymbolId,
+  ScatterWin,
   SpinResult,
   SymbolDefinition,
   SymbolId,
