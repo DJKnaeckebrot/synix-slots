@@ -259,7 +259,8 @@ export function resolveBigWinTier(
 
 /**
  * Apply a wheel segment to the running multiplier.
- * add: m += value; multiply: m *= value; max_win / feature / spins / rank_up: no direct m change here.
+ * add: m += value; multiply: m *= value (from a floor of 1 if m is still 0);
+ * max_win / feature / spins / rank_up / end: no direct m change here.
  */
 export function applyWheelToMultiplier(
   current: number,
@@ -268,8 +269,11 @@ export function applyWheelToMultiplier(
   switch (segment.kind) {
     case "add":
       return current + (segment.value ?? 0);
-    case "multiply":
-      return current * (segment.value ?? 1);
+    case "multiply": {
+      // ×N alone must not stay 0 (0 × 2 === 0). Treat empty mult as 1× base.
+      const base = current > 0 ? current : 1;
+      return base * (segment.value ?? 1);
+    }
     default:
       return current;
   }

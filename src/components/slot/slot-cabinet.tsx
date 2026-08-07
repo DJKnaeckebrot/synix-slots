@@ -9,6 +9,10 @@ import { FeatureHud } from "@/components/slot/feature-hud";
 import { FeatureIntro } from "@/components/slot/feature-intro";
 import { MultiplierHud } from "@/components/slot/multiplier-hud";
 import { RankUpOffer } from "@/components/slot/rank-up-offer";
+import {
+  RankUpResult,
+  type RankUpResultPayload,
+} from "@/components/slot/rank-up-result";
 import { RankWheel } from "@/components/slot/rank-wheel";
 import { SlotGrid } from "@/components/slot/slot-grid";
 import { WinDialog, type WinDialogPayload } from "@/components/slot/win-dialog";
@@ -111,6 +115,12 @@ export function SlotCabinet({
   const [winDialog, setWinDialog] = useState<WinDialogPayload | null>(null);
   const [rankUpOpen, setRankUpOpen] = useState(false);
   const [rankUpBusy, setRankUpBusy] = useState(false);
+  const [rankUpResult, setRankUpResult] = useState<
+    | (RankUpResultPayload & {
+        apply: () => void;
+      })
+    | null
+  >(null);
   const [muted, setMuted] = useState(false);
 
   const skipRef = useRef({ skipped: false });
@@ -221,7 +231,8 @@ export function SlotCabinet({
           const after = wheel.multiplierAfter;
           if (isMul) {
             setMultEffect("multiply");
-            setMultEquation(`${before}x × ${wheel.label.replace("×", "")}`);
+            const from = before > 0 ? before : 1;
+            setMultEquation(`${from}x × ${wheel.label.replace(/^×|^x/i, "")}`);
             AudioManager.play("multiplier-multiply");
           } else if (wheel.label.startsWith("+")) {
             setMultEffect("add");
@@ -402,12 +413,20 @@ export function SlotCabinet({
   useEffect(() => {
     if (!featureSession) return;
     if (phase !== "FEATURE_SPINNING") return;
-    if (pendingIntro || rankUpOpen || winDialog) return;
+    if (pendingIntro || rankUpOpen || rankUpResult || winDialog) return;
     const timer = setTimeout(() => {
       void requestSpin();
     }, 600);
     return () => clearTimeout(timer);
-  }, [featureSession, phase, pendingIntro, rankUpOpen, winDialog, requestSpin]);
+  }, [
+    featureSession,
+    phase,
+    pendingIntro,
+    rankUpOpen,
+    rankUpResult,
+    winDialog,
+    requestSpin,
+  ]);
 
   useEffect(() => {
     setBalance(credits);
@@ -427,34 +446,58 @@ export function SlotCabinet({
       const data = await res.json();
       if (action === "try" && data.outcome) {
         AudioManager.play("rank-up");
+        const prevFeatureWin = featureSession?.featureWin ?? 0;
+
         if (data.outcome.type === "upgrade") {
-          setPendingIntro({
-            type: data.outcome.to,
-            spins: data.outcome.spins,
+          const to = data.outcome.to as FeatureType;
+          const spins = data.outcome.spins as number;
+          setRankUpResult({
+            kind: "upgrade",
+            title: data.outcome.label ?? "RANK UP",
+            subtitle: `${GAME_CONFIG.featureMeta[to].title} · ${spins} spins`,
+            apply: () => {
+              setPendingIntro({ type: to, spins });
+              setFeatureSession({
+                type: to,
+                spinsRemaining: spins,
+                spinsTotal: spins,
+                featureWin: 0,
+              });
+              inFeatureRef.current = true;
+              setMessage(`RANK UP → ${data.outcome.label}`);
+            },
           });
-          setFeatureSession({
-            type: data.outcome.to,
-            spinsRemaining: data.outcome.spins,
-            spinsTotal: data.outcome.spins,
-            featureWin: 0,
-          });
-          inFeatureRef.current = true;
-          setMessage(`RANK UP → ${data.outcome.label}`);
         } else if (data.outcome.type === "end") {
-          setFeatureSession(null);
-          inFeatureRef.current = false;
-          setMessage("Series ended");
-          setPhase("IDLE");
-        } else {
-          setFeatureSession({
-            type: data.outcome.featureType,
-            spinsRemaining: data.outcome.spins,
-            spinsTotal: data.outcome.spins,
-            featureWin: featureSession?.featureWin ?? 0,
+          setRankUpResult({
+            kind: "end",
+            title: data.outcome.label ?? "END SERIES",
+            subtitle: "No upgrade this time — back to the cabinet.",
+            apply: () => {
+              setFeatureSession(null);
+              inFeatureRef.current = false;
+              setMessage("Series ended");
+              setPhase("IDLE");
+            },
           });
-          inFeatureRef.current = true;
-          setMessage(`+${data.outcome.spins} feature spins`);
-          setPhase("FEATURE_SPINNING");
+        } else {
+          const spins = data.outcome.spins as number;
+          const featureType = data.outcome.featureType as FeatureType;
+          setRankUpResult({
+            kind: "spins",
+            title: data.outcome.label ?? `+${spins} SPINS`,
+            subtitle: `${spins} more spins in ${GAME_CONFIG.featureMeta[featureType].title}`,
+            apply: () => {
+              setFeatureSession({
+                type: featureType,
+                spinsRemaining: spins,
+                spinsTotal: spins,
+                featureWin: prevFeatureWin,
+              });
+              inFeatureRef.current = true;
+              setMessage(`+${spins} feature spins`);
+              setPhase("FEATURE_SPINNING");
+            },
+          });
         }
       }
     } finally {
@@ -660,6 +703,19 @@ export function SlotCabinet({
           busy={rankUpBusy}
           onKeep={() => void handleRankUp("keep")}
           onTry={() => void handleRankUp("try")}
+        />
+      ) : null}
+
+      {rankUpResult ? (
+        <RankUpResult
+          kind={rankUpResult.kind}
+          title={rankUpResult.title}
+          subtitle={rankUpResult.subtitle}
+          onDone={() => {
+            const apply = rankUpResult.apply;
+            setRankUpResult(null);
+            apply();
+          }}
         />
       ) : null}
     </div>

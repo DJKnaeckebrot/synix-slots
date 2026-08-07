@@ -76,6 +76,16 @@ describe("multipliers", () => {
     expect(m).toBe(50);
   });
 
+  it("treats lone multiply as from 1× (not 0×)", () => {
+    const m = applyWheelToMultiplier(0, {
+      id: "n_mul_2",
+      kind: "multiply",
+      value: 2,
+      label: "×2",
+    });
+    expect(m).toBe(2);
+  });
+
   it("handles 10 + 20 then ×5 = 150", () => {
     let m = 0;
     m = applyWheelToMultiplier(m, {
