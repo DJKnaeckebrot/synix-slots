@@ -27,7 +27,8 @@ export type WheelSegmentKind =
   | "feature"
   | "max_win"
   | "rank_up"
-  | "spins";
+  | "spins"
+  | "end";
 
 export type BigWinTierId =
   | "nice"

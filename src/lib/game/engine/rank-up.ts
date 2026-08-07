@@ -20,6 +20,11 @@ export type RankUpOutcome =
       featureType: FeatureType;
     }
   | {
+      kind: "end";
+      segment: WheelSegment;
+      featureType: FeatureType;
+    }
+  | {
       kind: "upgrade";
       from: FeatureType;
       to: FeatureType;
@@ -51,6 +56,14 @@ export function resolveRankUp(args: {
       to: next,
       spins: GAME_CONFIG.features[next].spins,
       segment,
+    };
+  }
+
+  if (segment.kind === "end") {
+    return {
+      kind: "end",
+      segment,
+      featureType: args.currentFeature,
     };
   }
 

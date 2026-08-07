@@ -79,7 +79,7 @@ export const GAME_CONFIG = {
       },
       { id: "n_max", kind: "max_win", label: "MAX WIN" },
     ] satisfies WheelSegment[],
-    weights: [18, 16, 12, 9, 5, 2, 11, 7, 3, 2, 5, 2, 1] as const,
+    weights: [18, 16, 12, 9, 5, 2, 11, 7, 3, 2, 3, 1, 1] as const,
   },
 
   eliteWheel: {
@@ -105,11 +105,11 @@ export const GAME_CONFIG = {
     segments: [
       { id: "ru_spins_3", kind: "spins", value: 3, label: "+3 SPINS" },
       { id: "ru_spins_5", kind: "spins", value: 5, label: "+5 SPINS" },
-      { id: "ru_spins_8", kind: "spins", value: 8, label: "+8 SPINS" },
-      { id: "ru_spins_10", kind: "spins", value: 10, label: "+10 SPINS" },
+      { id: "ru_end", kind: "end", label: "END SERIES" },
       { id: "ru_rank_up", kind: "rank_up", label: "RANK UP" },
     ] satisfies WheelSegment[],
-    weights: [28, 22, 16, 10, 8] as const,
+    // Mostly end; rare extension; rare true rank up.
+    weights: [10, 6, 70, 8] as const,
   },
 
   features: {
@@ -174,7 +174,7 @@ export const GAME_CONFIG = {
     /** Two elite wheels → Grand Champion. */
     twoEliteGrandChampionChance: 0.25,
     /** Two wheels (no series feature) → Overtime chance. */
-    twoWheelOvertimeChance: 0.18,
+    twoWheelOvertimeChance: 0.08,
   },
 
   bigWinThresholds: [
@@ -193,7 +193,9 @@ export const GAME_CONFIG = {
     anticipationExtraMs: 700,
   },
 
-  autoplayOptions: [10, 25, 50] as const,
+  autoplayOptions: [10, 25, 50, 100] as const,
+  /** Sentinel for endless autoplay (manual stop / broke only). */
+  autoplayInfinite: -1 as const,
 
   wheelEligibleReels: [0, 2, 4] as const,
 } as const;

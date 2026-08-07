@@ -79,6 +79,26 @@ export async function POST(request: Request) {
 
   const outcome = resolveRankUp({ currentFeature: featureType });
 
+  if (outcome.kind === "end") {
+    // Ensure session stays completed / leave series.
+    await service
+      .from("feature_sessions")
+      .update({
+        status: "completed",
+        spins_remaining: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+
+    return NextResponse.json({
+      outcome: {
+        type: "end",
+        label: outcome.segment.label,
+        featureType: outcome.featureType,
+      },
+    });
+  }
+
   if (outcome.kind === "spins") {
     await service
       .from("feature_sessions")

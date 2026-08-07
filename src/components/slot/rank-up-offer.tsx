@@ -61,19 +61,22 @@ export function RankUpOffer({ current, onKeep, onTry, busy }: Props) {
             type="button"
             disabled={busy}
             onClick={onKeep}
-            className="rounded-lg border border-white/20 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 disabled:opacity-50"
+            className="rounded-lg bg-gradient-to-b from-cyan-400 to-blue-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-950 disabled:opacity-50"
           >
-            Keep Feature
+            Collect & Exit
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={onTry}
-            className="rounded-lg bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-950 disabled:opacity-50"
+            className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet-100 disabled:opacity-50"
           >
             Try Rank Up
           </button>
         </div>
+        <p className="mt-4 text-[10px] text-white/35">
+          Try can rank up, add spins, or end the series.
+        </p>
       </div>
     </motion.div>
   );

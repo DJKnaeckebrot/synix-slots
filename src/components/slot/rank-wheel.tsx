@@ -37,6 +37,9 @@ function sliceColor(
         ? "#0891b2"
         : "#1d4ed8";
   }
+  if (segment.kind === "end") {
+    return "#9f1239";
+  }
   if (segment.kind === "feature" || segment.kind === "rank_up") {
     return isElite ? "#db2777" : "#0369a1";
   }

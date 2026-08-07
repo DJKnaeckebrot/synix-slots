@@ -348,7 +348,7 @@ export function SlotCabinet({
   }
 
   useEffect(() => {
-    if (autoplayRemaining <= 0) return;
+    if (autoplayRemaining === 0) return;
     if (phase !== "IDLE") return;
     if (featureSession) {
       setAutoplayRemaining(0);
@@ -359,7 +359,9 @@ export function SlotCabinet({
       return;
     }
     const timer = setTimeout(() => {
-      setAutoplayRemaining((n) => Math.max(0, n - 1));
+      setAutoplayRemaining((n) =>
+        n === GAME_CONFIG.autoplayInfinite ? n : Math.max(0, n - 1),
+      );
       void requestSpin();
     }, 350);
     return () => clearTimeout(timer);
@@ -415,6 +417,11 @@ export function SlotCabinet({
           });
           inFeatureRef.current = true;
           setMessage(`RANK UP → ${data.outcome.label}`);
+        } else if (data.outcome.type === "end") {
+          setFeatureSession(null);
+          inFeatureRef.current = false;
+          setMessage("Series ended");
+          setPhase("IDLE");
         } else {
           setFeatureSession({
             type: data.outcome.featureType,
@@ -431,6 +438,8 @@ export function SlotCabinet({
       setRankUpBusy(false);
       setRankUpOpen(false);
       if (action === "keep") {
+        setFeatureSession(null);
+        inFeatureRef.current = false;
         setPhase("IDLE");
       }
     }

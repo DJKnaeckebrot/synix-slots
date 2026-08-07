@@ -16,6 +16,10 @@ type Props = {
   onStopAutoplay: () => void;
 };
 
+function autoplayLabel(count: number): string {
+  return count === GAME_CONFIG.autoplayInfinite ? "∞" : String(count);
+}
+
 export function BottomBar({
   bet,
   turbo,
@@ -30,6 +34,10 @@ export function BottomBar({
 }: Props) {
   const bets = GAME_CONFIG.bets as readonly number[];
   const betIndex = bets.indexOf(bet);
+  const autoplayChoices = [
+    ...(GAME_CONFIG.autoplayOptions as readonly number[]),
+    GAME_CONFIG.autoplayInfinite,
+  ];
 
   function cycleBet(delta: number) {
     const next = bets[(betIndex + delta + bets.length) % bets.length];
@@ -87,23 +95,23 @@ export function BottomBar({
             Turbo
           </button>
 
-          {autoplayRemaining > 0 ? (
+          {autoplayRemaining !== 0 ? (
             <button
               type="button"
               onClick={onStopAutoplay}
               className="rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-100"
             >
-              Stop ({autoplayRemaining})
+              Stop ({autoplayLabel(autoplayRemaining)})
             </button>
           ) : (
-            GAME_CONFIG.autoplayOptions.map((count) => (
+            autoplayChoices.map((count) => (
               <button
                 key={count}
                 type="button"
                 onClick={() => onAutoplay(count)}
                 className="rounded-md border border-white/15 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/55 hover:border-cyan-400/35 hover:text-cyan-100"
               >
-                Auto {count}
+                Auto {autoplayLabel(count)}
               </button>
             ))
           )}
