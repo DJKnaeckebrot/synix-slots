@@ -103,34 +103,33 @@ export const GAME_CONFIG = {
 
   rankUpWheel: {
     segments: [
-      { id: "ru_spins_3", kind: "spins", value: 3, label: "+3 SPINS" },
-      { id: "ru_spins_5", kind: "spins", value: 5, label: "+5 SPINS" },
+      { id: "ru_spins_2", kind: "spins", value: 2, label: "+2 SPINS" },
       { id: "ru_end", kind: "end", label: "END SERIES" },
       { id: "ru_rank_up", kind: "rank_up", label: "RANK UP" },
     ] satisfies WheelSegment[],
-    // Mostly end; rare extension; rare true rank up.
-    weights: [10, 6, 70, 8] as const,
+    // Mostly end; tiny extension; rare true rank up.
+    weights: [8, 78, 6] as const,
   },
 
   features: {
     overtime: {
-      spins: 8,
+      spins: 4,
       wheelChance: 0.22,
       eliteChance: 0.1,
     },
     champion: {
-      spins: 10,
+      spins: 5,
       wheelChance: 0.28,
       eliteChance: 0.15,
     },
     grand_champion: {
-      spins: 10,
+      spins: 6,
       wheelChance: 0.35,
       eliteChance: 0.85,
       disableNormalWheels: true,
     },
     road_to_ssl: {
-      spins: 10,
+      spins: 6,
       wheelChance: 0.4,
       eliteChance: 1,
       guaranteeElite: true,

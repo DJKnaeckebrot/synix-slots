@@ -25,12 +25,12 @@ describe("resolveRankUp", () => {
     });
     expect(outcome.kind).toBe("spins");
     if (outcome.kind === "spins") {
-      expect(outcome.spins).toBe(3);
+      expect(outcome.spins).toBe(2);
     }
   });
 
   it("upgrades when rank_up segment forced via high roll into last bucket", () => {
-    // Rank-up weights: 10,6,70,8 — total 94. Last segment is rank_up.
+    // Rank-up weights: 8,78,6 — total 92. Last segment is rank_up.
     const outcome = resolveRankUp({
       currentFeature: "champion",
       randomIntFn: (_min, max) => max - 1,
@@ -42,10 +42,10 @@ describe("resolveRankUp", () => {
   });
 
   it("ends the series on END segment", () => {
-    // Weights 10,6,70,8 — END is third bucket starting at scaled 16e6.
+    // Weights 8,78,6 — END is second bucket starting at scaled 8e6.
     const outcome = resolveRankUp({
       currentFeature: "overtime",
-      randomIntFn: () => 16_000_000,
+      randomIntFn: () => 8_000_000,
     });
     expect(outcome.kind).toBe("end");
   });

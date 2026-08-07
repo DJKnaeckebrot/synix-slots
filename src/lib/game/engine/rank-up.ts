@@ -45,7 +45,7 @@ export function resolveRankUp(args: {
       // Already at top — award spins instead.
       return {
         kind: "spins",
-        spins: 5,
+        spins: 2,
         segment,
         featureType: args.currentFeature,
       };
