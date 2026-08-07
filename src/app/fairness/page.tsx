@@ -42,12 +42,10 @@ export default function FairnessPage() {
         </div>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-cyan-100">
-            Virtual €
-          </h2>
+          <h2 className="text-lg font-semibold text-cyan-100">Virtual €</h2>
           <p className="text-sm leading-relaxed text-white/55">
-            This is a free community game. Virtual € has no monetary value. There
-            are no deposits, withdrawals, or real-money gambling.
+            This is a free community game. Virtual € has no monetary value.
+            There are no deposits, withdrawals, or real-money gambling.
           </p>
         </section>
 

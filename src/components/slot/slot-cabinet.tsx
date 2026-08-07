@@ -360,7 +360,10 @@ export function SlotCabinet({
 
       if (!res.ok || !data.spin) {
         setPhase("IDLE");
-        setMessage(data.error ?? "Spin failed");
+        const err = data.error ?? "Spin failed";
+        setMessage(
+          err === "insufficient_credits" ? "Insufficient balance." : err,
+        );
         setAutoplayRemaining(0);
         return;
       }
