@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GAME_CONFIG } from "../config";
 import type { SymbolId } from "../types";
 import { evaluatePaylines, sumBaseWin } from "./paylines";
 
@@ -24,8 +25,11 @@ describe("evaluatePaylines", () => {
     expect(top).toBeDefined();
     expect(top?.symbol).toBe("gold");
     expect(top?.count).toBe(5);
-    // gold 5-oak = 2.8 × bet → 28
-    expect(top?.win).toBe(28);
+    expect(top?.win).toBe(
+      Math.round(
+        10 * GAME_CONFIG.symbols.gold.payouts[5] * GAME_CONFIG.payoutScale,
+      ),
+    );
   });
 
   it("stops streak on wheel symbol", () => {
@@ -51,8 +55,11 @@ describe("evaluatePaylines", () => {
     const wins = evaluatePaylines(grid, 10);
     const top = wins.find((w) => w.paylineId === 0);
     expect(top?.count).toBe(3);
-    // diamond 3 = 0.88 × 10 = 9 (rounded)
-    expect(top?.win).toBe(9);
-    expect(sumBaseWin(wins)).toBeGreaterThanOrEqual(8);
+    expect(top?.win).toBe(
+      Math.round(
+        10 * GAME_CONFIG.symbols.diamond.payouts[3] * GAME_CONFIG.payoutScale,
+      ),
+    );
+    expect(sumBaseWin(wins)).toBeGreaterThanOrEqual(top?.win ?? 0);
   });
 });
