@@ -18,7 +18,7 @@ import { SlotGrid } from "@/components/slot/slot-grid";
 import { WinDialog, type WinDialogPayload } from "@/components/slot/win-dialog";
 import { formatEuro } from "@/lib/format-euro";
 import { AudioManager } from "@/lib/game/audio";
-import { GAME_CONFIG } from "@/lib/game/config";
+import { GAME_CONFIG, resolveSpinDebit } from "@/lib/game/config";
 import {
   type FeatureSessionView,
   type GamePhase,
@@ -86,6 +86,7 @@ export function SlotCabinet({
   initialFeature = null,
 }: Props) {
   const [bet, setBet] = useState(INITIAL_CLIENT_STATE.bet);
+  const [featureSpins, setFeatureSpins] = useState(false);
   const [turbo, setTurbo] = useState<TurboMode>(INITIAL_CLIENT_STATE.turbo);
   const [autoplayRemaining, setAutoplayRemaining] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -135,10 +136,15 @@ export function SlotCabinet({
   }, []);
 
   const busy = phase !== "IDLE" && phase !== "FEATURE_SPINNING";
+  const spinCost = resolveSpinDebit({
+    bet,
+    isFeatureSpin: featureSession != null,
+    featureSpins,
+  });
   const canSpin =
     authenticated &&
     (phase === "IDLE" || phase === "FEATURE_SPINNING") &&
-    (featureSession != null || balance >= bet);
+    (featureSession != null || balance >= spinCost);
 
   const spinLabel = useMemo(() => {
     if (SKIPPABLE_PHASES.has(phase) && phase !== "FEATURE_SPINNING") {
@@ -337,7 +343,12 @@ export function SlotCabinet({
       return;
     }
     if (phase !== "IDLE" && phase !== "FEATURE_SPINNING") return;
-    if (balance < bet) {
+    const cost = resolveSpinDebit({
+      bet,
+      isFeatureSpin: featureSession != null,
+      featureSpins,
+    });
+    if (balance < cost) {
       setMessage("Insufficient balance.");
       setAutoplayRemaining(0);
       return;
@@ -351,7 +362,11 @@ export function SlotCabinet({
       const res = await fetch("/api/game/spin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bet, clientRequestId }),
+        body: JSON.stringify({
+          bet,
+          clientRequestId,
+          featureSpins: featureSession ? false : featureSpins,
+        }),
       });
       const data = (await res.json()) as {
         spin?: SpinResult;
@@ -374,7 +389,15 @@ export function SlotCabinet({
       setMessage("Network error — try again.");
       setAutoplayRemaining(0);
     }
-  }, [authenticated, balance, bet, phase, revealSpin]);
+  }, [
+    authenticated,
+    balance,
+    bet,
+    featureSession,
+    featureSpins,
+    phase,
+    revealSpin,
+  ]);
 
   function onSpinOrSkip() {
     if (SKIPPABLE_PHASES.has(phase) && phase !== "FEATURE_SPINNING") {
@@ -392,7 +415,8 @@ export function SlotCabinet({
       setAutoplayRemaining(0);
       return;
     }
-    if (!authenticated || balance < bet) {
+    const cost = resolveSpinDebit({ bet, featureSpins });
+    if (!authenticated || balance < cost) {
       setAutoplayRemaining(0);
       return;
     }
@@ -409,6 +433,7 @@ export function SlotCabinet({
     authenticated,
     balance,
     bet,
+    featureSpins,
     requestSpin,
     featureSession,
   ]);
@@ -617,6 +642,7 @@ export function SlotCabinet({
         {!featureSession ? (
           <BottomBar
             bet={bet}
+            featureSpins={featureSpins}
             turbo={turbo}
             autoplayRemaining={autoplayRemaining}
             canSpin={
@@ -628,6 +654,9 @@ export function SlotCabinet({
             spinLabel={authenticated ? spinLabel : "SPIN"}
             onBetChange={(next) => {
               if (!busy) setBet(next);
+            }}
+            onFeatureSpinsToggle={() => {
+              if (!busy) setFeatureSpins((v) => !v);
             }}
             onSpin={onSpinOrSkip}
             onTurboToggle={() =>

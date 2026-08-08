@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from "../config";
 import { SCATTERS } from "../symbols";
 import type {
   ScatterResult,
@@ -39,7 +40,7 @@ export function evaluateScatters(
   if (fennecDef.payouts && fennecCount >= 3) {
     const count = Math.min(fennecCount, 5) as 3 | 4 | 5;
     const multiple = fennecDef.payouts[count];
-    const win = Math.round(bet * multiple);
+    const win = Math.round(bet * multiple * GAME_CONFIG.payoutScale);
     if (win > 0) {
       wins.push({
         symbol: "fennec",

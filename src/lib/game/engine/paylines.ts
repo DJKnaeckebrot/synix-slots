@@ -39,7 +39,9 @@ export function evaluatePaylines(
 
     const matchCount = Math.min(count, 5) as 3 | 4 | 5;
     const payoutMultiple = GAME_CONFIG.symbols[first].payouts[matchCount];
-    const winCredits = Math.round(bet * payoutMultiple);
+    const winCredits = Math.round(
+      bet * payoutMultiple * GAME_CONFIG.payoutScale,
+    );
 
     if (winCredits <= 0) {
       continue;

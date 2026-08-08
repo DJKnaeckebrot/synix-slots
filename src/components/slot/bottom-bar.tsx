@@ -6,11 +6,13 @@ import type { TurboMode } from "@/lib/game/state";
 
 type Props = {
   bet: number;
+  featureSpins: boolean;
   turbo: TurboMode;
   autoplayRemaining: number;
   canSpin: boolean;
   spinLabel?: string;
   onBetChange: (bet: number) => void;
+  onFeatureSpinsToggle: () => void;
   onSpin: () => void;
   onTurboToggle: () => void;
   onAutoplay: (count: number) => void;
@@ -23,11 +25,13 @@ function autoplayLabel(count: number): string {
 
 export function BottomBar({
   bet,
+  featureSpins,
   turbo,
   autoplayRemaining,
   canSpin,
   spinLabel = "SPIN",
   onBetChange,
+  onFeatureSpinsToggle,
   onSpin,
   onTurboToggle,
   onAutoplay,
@@ -35,6 +39,9 @@ export function BottomBar({
 }: Props) {
   const bets = GAME_CONFIG.bets as readonly number[];
   const betIndex = bets.indexOf(bet);
+  const stake =
+    bet *
+    (featureSpins ? GAME_CONFIG.featureSpins.stakeMultiplier : 1);
   const autoplayChoices = [
     ...(GAME_CONFIG.autoplayOptions as readonly number[]),
     GAME_CONFIG.autoplayInfinite,
@@ -48,28 +55,52 @@ export function BottomBar({
   return (
     <div className="w-full max-w-3xl rounded-2xl border border-white/10 bg-black/55 px-3 py-3 backdrop-blur-md sm:px-5 sm:py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-white/45">
-            Bet
-          </span>
-          <button
-            type="button"
-            aria-label="Decrease bet"
-            onClick={() => cycleBet(-1)}
-            className="h-9 w-9 rounded-md border border-white/15 text-lg text-white/80 hover:border-cyan-400/40"
-          >
-            −
-          </button>
-          <div className="min-w-[4.5rem] rounded-md border border-cyan-400/25 bg-cyan-950/30 px-3 py-1.5 text-center font-mono text-lg text-cyan-100">
-            {formatEuro(bet)}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-white/45">
+              Bet
+            </span>
+            <button
+              type="button"
+              aria-label="Decrease bet"
+              onClick={() => cycleBet(-1)}
+              className="h-9 w-9 rounded-md border border-white/15 text-lg text-white/80 hover:border-cyan-400/40"
+            >
+              −
+            </button>
+            <div className="min-w-[4.5rem] rounded-md border border-cyan-400/25 bg-cyan-950/30 px-3 py-1.5 text-center font-mono text-lg text-cyan-100">
+              {formatEuro(bet)}
+            </div>
+            <button
+              type="button"
+              aria-label="Increase bet"
+              onClick={() => cycleBet(1)}
+              className="h-9 w-9 rounded-md border border-white/15 text-lg text-white/80 hover:border-cyan-400/40"
+            >
+              +
+            </button>
           </div>
           <button
             type="button"
-            aria-label="Increase bet"
-            onClick={() => cycleBet(1)}
-            className="h-9 w-9 rounded-md border border-white/15 text-lg text-white/80 hover:border-cyan-400/40"
+            onClick={onFeatureSpinsToggle}
+            aria-pressed={featureSpins}
+            className={[
+              "rounded-md border px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.18em] transition",
+              featureSpins
+                ? "border-amber-400/55 bg-amber-500/20 text-amber-100"
+                : "border-white/15 text-white/55 hover:border-amber-400/35 hover:text-amber-100",
+            ].join(" ")}
           >
-            +
+            Feature Spins · {GAME_CONFIG.featureSpins.stakeMultiplier}×
+            {featureSpins ? (
+              <span className="mt-0.5 block font-mono text-[9px] font-normal tracking-normal text-amber-100/70 normal-case">
+                Stake {formatEuro(stake)} · more wheels & free games
+              </span>
+            ) : (
+              <span className="mt-0.5 block font-mono text-[9px] font-normal tracking-normal text-white/35 normal-case">
+                Off · pay {GAME_CONFIG.featureSpins.stakeMultiplier}× for boost
+              </span>
+            )}
           </button>
         </div>
 

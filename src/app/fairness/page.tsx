@@ -64,7 +64,7 @@ export default function FairnessPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-cyan-100">RTP</h2>
           <p className="text-sm leading-relaxed text-white/55">
-            Target experimental RTP band: <strong>94–96%</strong>. RTP emerges
+            Target experimental RTP: <strong>~100%</strong>. RTP emerges
             from static configured weights — there is no per-user, streak, or
             balance-based odds adjustment. Validate with:
           </p>
@@ -97,6 +97,18 @@ export default function FairnessPage() {
               Grid: {GAME_CONFIG.grid.reels}×{GAME_CONFIG.grid.rows}
             </li>
             <li>Bets: {(GAME_CONFIG.bets as readonly number[]).join(", ")}</li>
+            <li>
+              Feature Spins ante: {GAME_CONFIG.featureSpins.stakeMultiplier}×
+              stake — more Rank Wheels, scatters, and free-game triggers (wins
+              still vs base bet)
+            </li>
+            <li>
+              Feature packages: Overtime{" "}
+              {GAME_CONFIG.features.overtime.spins} / Champion{" "}
+              {GAME_CONFIG.features.champion.spins} / Grand Champion{" "}
+              {GAME_CONFIG.features.grand_champion.spins} / Road to SSL{" "}
+              {GAME_CONFIG.features.road_to_ssl.spins} spins
+            </li>
           </ul>
         </section>
 

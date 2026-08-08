@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isValidBet } from "@/lib/game/config";
+import { isValidBet, resolveSpinDebit } from "@/lib/game/config";
 import { type DevSpinOverride, generateSpin } from "@/lib/game/engine";
 import { syncFeatureSessionAfterSpin } from "@/lib/game/feature-session";
 import type { FeatureType, SpinResult } from "@/lib/game/types";
@@ -8,6 +8,8 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 type SpinBody = {
   bet: number;
   clientRequestId: string;
+  /** Ante mode: 3× stake for boosted odds (ignored during free feature spins). */
+  featureSpins?: boolean;
   override?: DevSpinOverride;
 };
 
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
   }
 
   const { bet, clientRequestId, override } = body;
+  const wantFeatureSpins = Boolean(body.featureSpins);
 
   if (!Number.isInteger(bet) || !isValidBet(bet)) {
     return NextResponse.json({ error: "invalid_bet" }, { status: 400 });
@@ -98,7 +101,8 @@ export async function POST(request: Request) {
   const featureMode =
     (featureSession?.feature_type as FeatureType | null) ?? null;
   const isFeatureSpin = Boolean(featureSession);
-  const debit = isFeatureSpin ? 0 : bet;
+  const featureSpins = wantFeatureSpins && !isFeatureSpin;
+  const debit = resolveSpinDebit({ bet, isFeatureSpin, featureSpins });
   const balanceBefore = Number(profile.credits);
 
   if (balanceBefore < debit) {
@@ -116,6 +120,7 @@ export async function POST(request: Request) {
       balanceBefore,
       featureMode,
       isFeatureSpin,
+      featureSpins,
       override: process.env.NODE_ENV === "development" ? override : undefined,
     });
   } catch (err) {
@@ -192,7 +197,8 @@ export async function POST(request: Request) {
     const { data: rpcResult, error: rpcError } = await supabase.rpc(
       "execute_spin",
       {
-        p_bet: bet,
+        // RPC debits p_bet — pass ante cost when Feature Spins is on.
+        p_bet: debit,
         p_client_request_id: clientRequestId,
         p_result: spin,
         p_dev_override: null,

@@ -7,6 +7,7 @@ import {
   getSymbolWeights,
   isValidBet,
   resolveBigWinTier,
+  resolveSpinDebit,
 } from "../config";
 import {
   chance,
@@ -43,6 +44,8 @@ export type GenerateSpinInput = {
   featureMode?: FeatureType | null;
   /** When true, bet is used for payout math but not deducted (free feature spin). */
   isFeatureSpin?: boolean;
+  /** Ante mode: 3× stake for boosted wheels / scatters / features (base game only). */
+  featureSpins?: boolean;
   balanceBefore: number;
   randomIntFn?: RandomIntFn;
   /** Development-only. Rejected by API in production. */
@@ -53,14 +56,20 @@ export type GeneratedSpin = Omit<SpinResult, "balanceAfter"> & {
   balanceAfter: number;
 };
 
-function pickPaySymbol(randomIntFn: RandomIntFn): SymbolId {
-  return weightedSymbol(getSymbolWeights(), randomIntFn);
+function pickPaySymbol(
+  randomIntFn: RandomIntFn,
+  featureSpins: boolean,
+): SymbolId {
+  return weightedSymbol(getSymbolWeights({ featureSpins }), randomIntFn);
 }
 
-function buildBaseGrid(randomIntFn: RandomIntFn): SymbolId[][] {
+function buildBaseGrid(
+  randomIntFn: RandomIntFn,
+  featureSpins: boolean,
+): SymbolId[][] {
   const { reels, rows } = GAME_CONFIG.grid;
   return Array.from({ length: reels }, () =>
-    Array.from({ length: rows }, () => pickPaySymbol(randomIntFn)),
+    Array.from({ length: rows }, () => pickPaySymbol(randomIntFn, featureSpins)),
   );
 }
 
@@ -76,6 +85,7 @@ function placeWheelOnReel(
 
 function resolveWheelPlacement(
   featureMode: FeatureType | null | undefined,
+  featureSpins: boolean,
   randomIntFn: RandomIntFn,
   override?: DevSpinOverride,
 ): { reel: WheelReelIndex; kind: WheelKind }[] {
@@ -114,10 +124,17 @@ function resolveWheelPlacement(
     return placed.sort((a, b) => a.reel - b.reel);
   }
 
+  const ante = !featureMode && featureSpins;
   const wheelChance =
-    modeConfig?.wheelChance ?? GAME_CONFIG.baseGame.wheelChance;
+    modeConfig?.wheelChance ??
+    (ante
+      ? GAME_CONFIG.featureSpins.wheelChance
+      : GAME_CONFIG.baseGame.wheelChance);
   const eliteChance =
-    modeConfig?.eliteChance ?? GAME_CONFIG.baseGame.eliteChance;
+    modeConfig?.eliteChance ??
+    (ante
+      ? GAME_CONFIG.featureSpins.eliteChance
+      : GAME_CONFIG.baseGame.eliteChance);
   const disableNormal = modeConfig?.disableNormalWheels ?? false;
 
   for (const reel of eligible) {
@@ -140,11 +157,14 @@ function resolveWheelPlacement(
 
 function pickSegment(
   kind: WheelKind,
+  featureSpins: boolean,
   randomIntFn: RandomIntFn,
   forcedSegmentId?: string,
 ): WheelSegment {
   const pool =
-    kind === "elite" ? getEliteWheelWeighted() : getNormalWheelWeighted();
+    kind === "elite"
+      ? getEliteWheelWeighted()
+      : getNormalWheelWeighted({ featureSpins });
 
   if (forcedSegmentId) {
     const found = pool.find((w) => w.item.id === forcedSegmentId);
@@ -156,6 +176,7 @@ function pickSegment(
 
 function resolveFeatureTrigger(args: {
   featureMode: FeatureType | null | undefined;
+  featureSpins: boolean;
   wheels: WheelResult[];
   segments: WheelSegment[];
   randomIntFn: RandomIntFn;
@@ -176,6 +197,10 @@ function resolveFeatureTrigger(args: {
     return { triggered: false };
   }
 
+  const triggers = args.featureSpins
+    ? GAME_CONFIG.featureSpins.featureTriggers
+    : GAME_CONFIG.featureTriggers;
+
   const eliteCount = args.wheels.filter((w) => w.kind === "elite").length;
   const wheelCount = args.wheels.length;
   const overtimeSegment = args.segments.some(
@@ -187,10 +212,7 @@ function resolveFeatureTrigger(args: {
 
   if (
     wheelCount >= 3 &&
-    chance(
-      GAME_CONFIG.featureTriggers.threeWheelRoadToSslChance,
-      args.randomIntFn,
-    )
+    chance(triggers.threeWheelRoadToSslChance, args.randomIntFn)
   ) {
     return {
       triggered: true,
@@ -201,10 +223,7 @@ function resolveFeatureTrigger(args: {
 
   if (
     eliteCount >= 2 &&
-    chance(
-      GAME_CONFIG.featureTriggers.twoEliteGrandChampionChance,
-      args.randomIntFn,
-    )
+    chance(triggers.twoEliteGrandChampionChance, args.randomIntFn)
   ) {
     return {
       triggered: true,
@@ -222,10 +241,7 @@ function resolveFeatureTrigger(args: {
     );
     if (
       eliteSeries &&
-      chance(
-        GAME_CONFIG.featureTriggers.eliteFeatureGrandChampionChance,
-        args.randomIntFn,
-      )
+      chance(triggers.eliteFeatureGrandChampionChance, args.randomIntFn)
     ) {
       return {
         triggered: true,
@@ -250,7 +266,7 @@ function resolveFeatureTrigger(args: {
 
   if (
     wheelCount >= 2 &&
-    chance(GAME_CONFIG.featureTriggers.twoWheelOvertimeChance, args.randomIntFn)
+    chance(triggers.twoWheelOvertimeChance, args.randomIntFn)
   ) {
     return {
       triggered: true,
@@ -284,18 +300,20 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
     balanceBefore,
     override,
   } = input;
+  // Ante only applies in paid base-game spins.
+  const featureSpins = Boolean(input.featureSpins) && !isFeatureSpin && !featureMode;
   const randomIntFn = input.randomIntFn ?? cryptoRandomInt;
 
   if (!isValidBet(bet)) {
     throw new Error("invalid_bet");
   }
-  const debit = isFeatureSpin ? 0 : bet;
+  const debit = resolveSpinDebit({ bet, isFeatureSpin, featureSpins });
   if (balanceBefore < debit) {
     throw new Error("insufficient_credits");
   }
 
   // Pay + scatter grid first — wheels only stamp after a real win (or dev force).
-  const grid = buildBaseGrid(randomIntFn);
+  const grid = buildBaseGrid(randomIntFn, featureSpins);
   const paylines = evaluatePaylines(grid, bet);
   const scatters = evaluateScatters(grid, bet);
   const lineWin = sumBaseWin(paylines);
@@ -306,7 +324,7 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
   );
   const placements =
     baseWin > 0 || hasForceWheels
-      ? resolveWheelPlacement(featureMode, randomIntFn, override)
+      ? resolveWheelPlacement(featureMode, featureSpins, randomIntFn, override)
       : [];
 
   for (const { reel, kind } of placements) {
@@ -326,6 +344,7 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
   for (const { reel, kind } of placements) {
     const segment = pickSegment(
       kind,
+      featureSpins,
       randomIntFn,
       override?.forceSegments?.[reel],
     );
@@ -387,6 +406,7 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
 
   const feature = resolveFeatureTrigger({
     featureMode,
+    featureSpins,
     wheels,
     segments: resolvedSegments,
     randomIntFn,
@@ -402,6 +422,8 @@ export function generateSpin(input: GenerateSpinInput): GeneratedSpin {
     clientRequestId,
     grid,
     bet,
+    debit,
+    featureSpins: featureSpins || undefined,
     paylines,
     scatters:
       scatters.fennecCount > 0 || scatters.octaneCount > 0

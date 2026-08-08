@@ -43,8 +43,35 @@ describe("generateSpin", () => {
 
     expect(result.grid).toHaveLength(5);
     expect(result.grid.every((reel) => reel.length === 4)).toBe(true);
+    expect(result.debit).toBe(1);
     expect(result.balanceAfter).toBe(1000 - 1 + result.payout);
     expect(result.bet).toBe(1);
+  });
+
+  it("charges 3× stake for Feature Spins ante", () => {
+    const result = generateSpin({
+      bet: 10,
+      featureSpins: true,
+      clientRequestId: "00000000-0000-4000-8000-000000000008",
+      balanceBefore: 1000,
+      randomIntFn: sequenceRandom([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+    });
+
+    expect(result.debit).toBe(30);
+    expect(result.featureSpins).toBe(true);
+    expect(result.bet).toBe(10);
+    expect(result.balanceAfter).toBe(1000 - 30 + result.payout);
+  });
+
+  it("rejects Feature Spins when balance cannot cover ante", () => {
+    expect(() =>
+      generateSpin({
+        bet: 10,
+        featureSpins: true,
+        clientRequestId: "00000000-0000-4000-8000-000000000009",
+        balanceBefore: 25,
+      }),
+    ).toThrow("insufficient_credits");
   });
 
   it("forces three wheels left-to-right and applies multipliers", () => {

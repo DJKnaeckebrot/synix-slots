@@ -4,6 +4,7 @@
  * Usage:
  *   pnpm simulate
  *   pnpm simulate -- --spins 100000
+ *   pnpm simulate -- --spins 100000 --feature-spins
  */
 import { GAME_CONFIG } from "../src/lib/game/config";
 import { generateSpin } from "../src/lib/game/engine/spin";
@@ -28,6 +29,10 @@ function parseBet(argv: string[]): number {
   return 10;
 }
 
+function parseFeatureSpins(argv: string[]): boolean {
+  return argv.includes("--feature-spins");
+}
+
 function median(sorted: number[]): number {
   if (sorted.length === 0) return 0;
   const mid = Math.floor(sorted.length / 2);
@@ -50,6 +55,10 @@ function bucket(multiple: number): string {
 const argv = process.argv.slice(2);
 const spins = parseSpins(argv);
 const bet = parseBet(argv);
+const featureSpins = parseFeatureSpins(argv);
+const stakePerSpin = featureSpins
+  ? bet * GAME_CONFIG.featureSpins.stakeMultiplier
+  : bet;
 const buckets: Record<string, number> = {
   "0x": 0,
   "0–1x": 0,
@@ -86,6 +95,7 @@ for (let i = 0; i < spins; i++) {
     bet,
     clientRequestId: `00000000-0000-4000-8000-${(i % 1e12).toString().padStart(12, "0")}`,
     balanceBefore: 1_000_000_000,
+    featureSpins,
   });
 
   let packagePayout = base.payout;
@@ -127,11 +137,13 @@ for (let i = 0; i < spins; i++) {
 
 payouts.sort((a, b) => a - b);
 const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-const rtp = (totalPayout / (spins * bet)) * 100;
+const rtp = (totalPayout / (spins * stakePerSpin)) * 100;
 
 const report = {
   spins,
   bet,
+  featureSpins,
+  stakePerSpin,
   elapsedSeconds: Number(elapsed),
   RTP_percent: Number(rtp.toFixed(3)),
   hitFrequency_percent: Number(((hits / spins) * 100).toFixed(3)),
@@ -164,7 +176,7 @@ const report = {
       },
     ]),
   ),
-  targetRtpBand: "94–96% (tune GAME_CONFIG if outside after 1e6 spins)",
+  targetRtpBand: "~100% (tune GAME_CONFIG if outside after 1e6 spins)",
 };
 
 console.log(JSON.stringify(report, null, 2));

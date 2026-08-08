@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GAME_CONFIG } from "../config";
 import type { SymbolId } from "../types";
 import { evaluateScatters } from "./scatters";
 
@@ -25,7 +26,9 @@ describe("evaluateScatters", () => {
     expect(result.fennecCount).toBe(3);
     expect(result.wins).toHaveLength(1);
     expect(result.wins[0].symbol).toBe("fennec");
-    expect(result.totalWin).toBe(Math.round(10 * 0.8));
+    expect(result.totalWin).toBe(
+      Math.round(10 * 0.83 * GAME_CONFIG.payoutScale),
+    );
     expect(result.freeGames).toBe(false);
   });
 

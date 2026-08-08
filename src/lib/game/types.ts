@@ -108,6 +108,10 @@ export interface SpinResult {
   /** grid[reel][row] — 5 reels × 4 rows. */
   grid: SymbolId[][];
   bet: number;
+  /** Credits deducted for this spin (0 during free feature spins). */
+  debit: number;
+  /** Ante mode: 3× stake for boosted wheels / scatters / features. */
+  featureSpins?: boolean;
   paylines: WinningPayline[];
   scatters?: ScatterResult;
   baseWin: number;

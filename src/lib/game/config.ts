@@ -20,7 +20,7 @@ import type {
  */
 
 export const GAME_CONFIG = {
-  version: 1,
+  version: 2,
   name: "Rank Rush",
   disclaimer: "Free community game. Virtual € only. No real-money gambling.",
 
@@ -37,6 +37,12 @@ export const GAME_CONFIG = {
   maxWin: 500,
 
   /**
+   * Global scale applied to line + scatter pays before credit rounding.
+   * Tuned with `pnpm simulate` toward ~100% RTP; keep below rounding cliffs at bet 10.
+   */
+  payoutScale: 1.022,
+
+  /**
    * When true, line-only spins (no wheels) pay baseWin at implicit 1×.
    * Wheel spins always start multiplier at 0 before applying segments.
    */
@@ -51,6 +57,26 @@ export const GAME_CONFIG = {
     wheelChance: 0.075,
     /** Given a wheel lands, chance it is elite. */
     eliteChance: 0.055,
+  },
+
+  /**
+   * Ante bet: 3× stake for more wheels, scatters, and feature triggers.
+   * Wins still resolve against the selected base bet.
+   */
+  featureSpins: {
+    stakeMultiplier: 3,
+    wheelChance: 0.18,
+    eliteChance: 0.14,
+    /** Multiplier applied to Fennec + Octane symbol weights. */
+    scatterWeightMultiplier: 2.4,
+    /** Multiplier applied to OVERTIME / FEATURE normal-wheel segment weights. */
+    featureSegmentWeightMultiplier: 2.5,
+    featureTriggers: {
+      eliteFeatureGrandChampionChance: 0.35,
+      threeWheelRoadToSslChance: 0.06,
+      twoEliteGrandChampionChance: 0.28,
+      twoWheelOvertimeChance: 0.14,
+    },
   },
 
   normalWheel: {
@@ -79,8 +105,8 @@ export const GAME_CONFIG = {
       },
       { id: "n_max", kind: "max_win", label: "MAX WIN" },
     ] satisfies WheelSegment[],
-    // Heavier low adds; rare features / max.
-    weights: [26, 20, 14, 8, 4, 1, 12, 6, 2, 1, 2, 1, 1] as const,
+    // Heavier low adds; features / max bumped for more frequent free games.
+    weights: [26, 20, 14, 8, 4, 1, 12, 6, 2, 1, 4, 2, 1] as const,
   },
 
   eliteWheel: {
@@ -108,29 +134,29 @@ export const GAME_CONFIG = {
       { id: "ru_end", kind: "end", label: "END SERIES" },
       { id: "ru_rank_up", kind: "rank_up", label: "RANK UP" },
     ] satisfies WheelSegment[],
-    // Mostly end; tiny extension; rare true rank up.
-    weights: [6, 84, 4] as const,
+    // Mostly end; more extensions / rank-ups than before.
+    weights: [10, 78, 6] as const,
   },
 
   features: {
     overtime: {
-      spins: 3,
+      spins: 4,
       wheelChance: 0.18,
       eliteChance: 0.08,
     },
     champion: {
-      spins: 4,
+      spins: 5,
       wheelChance: 0.22,
       eliteChance: 0.12,
     },
     grand_champion: {
-      spins: 5,
+      spins: 6,
       wheelChance: 0.28,
       eliteChance: 0.8,
       disableNormalWheels: true,
     },
     road_to_ssl: {
-      spins: 5,
+      spins: 6,
       wheelChance: 0.32,
       eliteChance: 1,
       guaranteeElite: true,
@@ -168,13 +194,13 @@ export const GAME_CONFIG = {
    */
   featureTriggers: {
     /** Elite FEATURE (Champion) in base → Grand Champion chance. */
-    eliteFeatureGrandChampionChance: 0.2,
+    eliteFeatureGrandChampionChance: 0.28,
     /** Three wheels in base → Road to SSL chance. */
-    threeWheelRoadToSslChance: 0.02,
+    threeWheelRoadToSslChance: 0.04,
     /** Two elite wheels → Grand Champion. */
-    twoEliteGrandChampionChance: 0.15,
+    twoEliteGrandChampionChance: 0.22,
     /** Two wheels (no series feature) → Overtime chance. */
-    twoWheelOvertimeChance: 0.05,
+    twoWheelOvertimeChance: 0.1,
   },
 
   bigWinThresholds: [
@@ -206,11 +232,31 @@ export function isValidBet(bet: number): boolean {
   return (GAME_CONFIG.bets as readonly number[]).includes(bet);
 }
 
-export function getNormalWheelWeighted(): WeightedItem<WheelSegment>[] {
-  return GAME_CONFIG.normalWheel.segments.map((segment, i) => ({
-    item: segment,
-    weight: GAME_CONFIG.normalWheel.weights[i],
-  }));
+/** Credits charged for a paid spin (0 for free feature spins). */
+export function resolveSpinDebit(args: {
+  bet: number;
+  isFeatureSpin?: boolean;
+  featureSpins?: boolean;
+}): number {
+  if (args.isFeatureSpin) return 0;
+  if (args.featureSpins) {
+    return args.bet * GAME_CONFIG.featureSpins.stakeMultiplier;
+  }
+  return args.bet;
+}
+
+export function getNormalWheelWeighted(
+  options?: { featureSpins?: boolean },
+): WeightedItem<WheelSegment>[] {
+  const boost = options?.featureSpins
+    ? GAME_CONFIG.featureSpins.featureSegmentWeightMultiplier
+    : 1;
+  return GAME_CONFIG.normalWheel.segments.map((segment, i) => {
+    const base = GAME_CONFIG.normalWheel.weights[i];
+    const weight =
+      segment.kind === "feature" ? Math.max(1, Math.round(base * boost)) : base;
+    return { item: segment, weight };
+  });
 }
 
 export function getEliteWheelWeighted(): WeightedItem<WheelSegment>[] {
@@ -227,16 +273,21 @@ export function getRankUpWheelWeighted(): WeightedItem<WheelSegment>[] {
   }));
 }
 
-export function getSymbolWeights(): WeightedItem<
+export function getSymbolWeights(
+  options?: { featureSpins?: boolean },
+): WeightedItem<
   keyof typeof GAME_CONFIG.symbols | keyof typeof GAME_CONFIG.scatters
 >[] {
+  const scatterBoost = options?.featureSpins
+    ? GAME_CONFIG.featureSpins.scatterWeightMultiplier
+    : 1;
   const pays = Object.values(GAME_CONFIG.symbols).map((symbol) => ({
     item: symbol.id,
     weight: symbol.weight,
   }));
   const scatters = Object.values(GAME_CONFIG.scatters).map((symbol) => ({
     item: symbol.id,
-    weight: symbol.weight,
+    weight: Math.max(1, Math.round(symbol.weight * scatterBoost)),
   }));
   return [...pays, ...scatters];
 }

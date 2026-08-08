@@ -7,6 +7,7 @@ export {
   getSymbolWeights,
   isValidBet,
   resolveBigWinTier,
+  resolveSpinDebit,
 } from "./config";
 export type {
   DevSpinOverride,
