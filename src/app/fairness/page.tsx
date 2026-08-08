@@ -64,9 +64,10 @@ export default function FairnessPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-cyan-100">RTP</h2>
           <p className="text-sm leading-relaxed text-white/55">
-            Target experimental RTP: <strong>~100%</strong>. RTP emerges
-            from static configured weights — there is no per-user, streak, or
-            balance-based odds adjustment. Validate with:
+            Target experimental RTP: <strong>~100%</strong> (validate with
+            simulator). RTP emerges from static configured weights — there is
+            no per-user, streak, or balance-based odds adjustment. Validate
+            with:
           </p>
           <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/50 p-4 text-xs text-cyan-100">
             pnpm simulate -- --spins 1000000
