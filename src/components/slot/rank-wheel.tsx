@@ -40,8 +40,11 @@ function sliceColor(
   if (segment.kind === "end") {
     return "#9f1239";
   }
+  if (segment.kind === "spins") {
+    return index % 2 === 0 ? "#0f766e" : "#115e59";
+  }
   if (segment.kind === "feature" || segment.kind === "rank_up") {
-    return isElite ? "#db2777" : "#0369a1";
+    return isElite ? "#db2777" : "#7c3aed";
   }
   return isElite ? "#581c87" : "#0f172a";
 }
@@ -80,6 +83,8 @@ export function RankWheel({
   const [landed, setLanded] = useState(false);
   const label = segments[targetIndex]?.label ?? "";
   const isElite = kind === "elite";
+  const isRankUp = kind === "rank_up";
+  const accent = isElite ? "elite" : isRankUp ? "rankup" : "normal";
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -121,7 +126,11 @@ export function RankWheel({
           <div
             className={[
               "h-0 w-0 border-l-[13px] border-r-[13px] border-t-[24px] border-l-transparent border-r-transparent drop-shadow",
-              isElite ? "border-t-fuchsia-300" : "border-t-cyan-300",
+              accent === "elite"
+                ? "border-t-fuchsia-300"
+                : accent === "rankup"
+                  ? "border-t-violet-300"
+                  : "border-t-cyan-300",
             ].join(" ")}
           />
         </div>
@@ -130,9 +139,11 @@ export function RankWheel({
           style={{ rotate: rotation }}
           className={[
             "h-full w-full rounded-full p-[3px]",
-            isElite
+            accent === "elite"
               ? "bg-gradient-to-br from-fuchsia-400 to-violet-700 shadow-[0_0_36px_rgba(217,70,239,0.4)]"
-              : "bg-gradient-to-br from-cyan-300 to-blue-700 shadow-[0_0_36px_rgba(34,211,238,0.4)]",
+              : accent === "rankup"
+                ? "bg-gradient-to-br from-violet-300 to-fuchsia-700 shadow-[0_0_36px_rgba(167,139,250,0.45)]"
+                : "bg-gradient-to-br from-cyan-300 to-blue-700 shadow-[0_0_36px_rgba(34,211,238,0.4)]",
           ].join(" ")}
         >
           <svg
@@ -185,8 +196,20 @@ export function RankWheel({
               cx={cx}
               cy={cy}
               r={52}
-              fill={isElite ? "#2e1065" : "#0b1220"}
-              stroke={isElite ? "#e879f9" : "#67e8f9"}
+              fill={
+                accent === "elite"
+                  ? "#2e1065"
+                  : accent === "rankup"
+                    ? "#1e1b4b"
+                    : "#0b1220"
+              }
+              stroke={
+                accent === "elite"
+                  ? "#e879f9"
+                  : accent === "rankup"
+                    ? "#c4b5fd"
+                    : "#67e8f9"
+              }
               strokeWidth={3}
             />
           </svg>
@@ -199,7 +222,11 @@ export function RankWheel({
                 sizes="80px"
                 className={[
                   "object-contain",
-                  isElite ? "hue-rotate-[280deg] saturate-150" : "",
+                  accent === "elite"
+                    ? "hue-rotate-[280deg] saturate-150"
+                    : accent === "rankup"
+                      ? "hue-rotate-[250deg] saturate-125"
+                      : "",
                 ].join(" ")}
                 draggable={false}
               />
@@ -214,9 +241,11 @@ export function RankWheel({
         animate={{ scale: 1, opacity: 1 }}
         className={[
           "rounded-lg border px-5 py-2.5 font-mono text-2xl font-bold tracking-wide",
-          isElite
+          accent === "elite"
             ? "border-fuchsia-400/40 text-fuchsia-100"
-            : "border-cyan-400/40 text-cyan-100",
+            : accent === "rankup"
+              ? "border-violet-400/40 text-violet-100"
+              : "border-cyan-400/40 text-cyan-100",
         ].join(" ")}
       >
         {landed ? label : "…"}

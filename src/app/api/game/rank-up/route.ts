@@ -94,6 +94,7 @@ export async function POST(request: Request) {
       outcome: {
         type: "end",
         label: outcome.segment.label,
+        segmentId: outcome.segment.id,
         featureType: outcome.featureType,
       },
     });
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
         type: "spins",
         spins: outcome.spins,
         label: outcome.segment.label,
+        segmentId: outcome.segment.id,
         featureType: outcome.featureType,
       },
     });
@@ -139,6 +141,7 @@ export async function POST(request: Request) {
       to: outcome.to,
       spins: outcome.spins,
       label: outcome.segment.label,
+      segmentId: outcome.segment.id,
     },
   });
 }

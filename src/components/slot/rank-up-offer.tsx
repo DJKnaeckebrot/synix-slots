@@ -9,6 +9,8 @@ type Props = {
   onKeep: () => void;
   onTry: () => void;
   busy?: boolean;
+  /** Autoplay is about to spin the Rank Up wheel. */
+  autoTrying?: boolean;
 };
 
 const NEXT: Partial<Record<FeatureType, FeatureType>> = {
@@ -17,7 +19,13 @@ const NEXT: Partial<Record<FeatureType, FeatureType>> = {
   grand_champion: "road_to_ssl",
 };
 
-export function RankUpOffer({ current, onKeep, onTry, busy }: Props) {
+export function RankUpOffer({
+  current,
+  onKeep,
+  onTry,
+  busy,
+  autoTrying,
+}: Props) {
   const next = NEXT[current];
   if (!next) {
     return (
@@ -47,7 +55,7 @@ export function RankUpOffer({ current, onKeep, onTry, busy }: Props) {
           Rank Up
         </p>
         <h2 className="mt-3 font-display text-2xl font-bold text-white">
-          Try for a higher series?
+          {autoTrying ? "Auto Rank Up…" : "Try for a higher series?"}
         </h2>
         <p className="mt-3 text-sm text-white/55">
           {GAME_CONFIG.featureMeta[current].title} →{" "}
@@ -56,26 +64,32 @@ export function RankUpOffer({ current, onKeep, onTry, busy }: Props) {
         <p className="mt-2 text-xs text-white/40">
           Virtual € only. Outcome is determined server-side.
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onKeep}
-            className="rounded-lg bg-gradient-to-b from-cyan-400 to-blue-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-950 disabled:opacity-50"
-          >
-            Collect & Exit
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onTry}
-            className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet-100 disabled:opacity-50"
-          >
-            Try Rank Up
-          </button>
-        </div>
+        {autoTrying ? (
+          <p className="mt-8 text-sm text-violet-200/80">
+            Spinning the Rank Up wheel…
+          </p>
+        ) : (
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onKeep}
+              className="rounded-lg bg-gradient-to-b from-cyan-400 to-blue-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-950 disabled:opacity-50"
+            >
+              Collect & Exit
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onTry}
+              className="rounded-lg border border-violet-400/40 bg-violet-500/15 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet-100 disabled:opacity-50"
+            >
+              Try Rank Up
+            </button>
+          </div>
+        )}
         <p className="mt-4 text-[10px] text-white/35">
-          Try can rank up, add spins, or end the series.
+          Spins the Rank Up wheel — more spins, a higher series, or end.
         </p>
       </div>
     </motion.div>

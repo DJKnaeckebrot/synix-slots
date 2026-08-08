@@ -131,11 +131,12 @@ export const GAME_CONFIG = {
   rankUpWheel: {
     segments: [
       { id: "ru_spins_2", kind: "spins", value: 2, label: "+2 SPINS" },
+      { id: "ru_spins_3", kind: "spins", value: 3, label: "+3 SPINS" },
       { id: "ru_end", kind: "end", label: "END SERIES" },
       { id: "ru_rank_up", kind: "rank_up", label: "RANK UP" },
     ] satisfies WheelSegment[],
-    // Mostly end; more extensions / rank-ups than before.
-    weights: [10, 78, 6] as const,
+    // ~36% more spins, ~48% end, ~16% true rank up.
+    weights: [22, 14, 48, 16] as const,
   },
 
   features: {

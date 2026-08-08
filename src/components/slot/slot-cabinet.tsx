@@ -17,6 +17,10 @@ import { RankWheel } from "@/components/slot/rank-wheel";
 import { SlotGrid } from "@/components/slot/slot-grid";
 import { WinDialog, type WinDialogPayload } from "@/components/slot/win-dialog";
 import { formatEuro } from "@/lib/format-euro";
+import {
+  persistAutoplay,
+  readPersistedAutoplay,
+} from "@/lib/autoplay-persist";
 import { AudioManager } from "@/lib/game/audio";
 import { GAME_CONFIG, resolveSpinDebit } from "@/lib/game/config";
 import {
@@ -89,6 +93,7 @@ export function SlotCabinet({
   const [featureSpins, setFeatureSpins] = useState(false);
   const [turbo, setTurbo] = useState<TurboMode>(INITIAL_CLIENT_STATE.turbo);
   const [autoplayRemaining, setAutoplayRemaining] = useState(0);
+  const [autoplayReady, setAutoplayReady] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [balance, setBalance] = useState(credits);
   const [phase, setPhase] = useState<GamePhase>("IDLE");
@@ -117,6 +122,10 @@ export function SlotCabinet({
   const [winDialog, setWinDialog] = useState<WinDialogPayload | null>(null);
   const [rankUpOpen, setRankUpOpen] = useState(false);
   const [rankUpBusy, setRankUpBusy] = useState(false);
+  const [rankUpSpin, setRankUpSpin] = useState<{
+    segmentId: string;
+    result: RankUpResultPayload & { apply: () => void };
+  } | null>(null);
   const [rankUpResult, setRankUpResult] = useState<
     | (RankUpResultPayload & {
         apply: () => void;
@@ -134,6 +143,27 @@ export function SlotCabinet({
   const handleWheelComplete = useCallback(() => {
     wheelDoneRef.current.done = true;
   }, []);
+
+  const autoplayActive = autoplayRemaining !== 0;
+
+  const updateAutoplay = useCallback((count: number) => {
+    setAutoplayRemaining(count);
+    persistAutoplay(count);
+  }, []);
+
+  // Restore autoplay after reload (cookie / localStorage).
+  useEffect(() => {
+    const restored = readPersistedAutoplay();
+    if (restored !== 0) {
+      setAutoplayRemaining(restored);
+    }
+    setAutoplayReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!autoplayReady) return;
+    persistAutoplay(autoplayRemaining);
+  }, [autoplayRemaining, autoplayReady]);
 
   const busy = phase !== "IDLE" && phase !== "FEATURE_SPINNING";
   const spinCost = resolveSpinDebit({
@@ -258,7 +288,6 @@ export function SlotCabinet({
       if (spin.feature?.triggered && spin.feature.type) {
         setPhase("FEATURE_TRIGGER");
         AudioManager.play("feature-trigger");
-        setAutoplayRemaining(0);
         if (spin.scatters?.freeGames && spin.feature.type === "overtime") {
           setMessage(`Octane ×${spin.scatters.octaneCount} · FREE GAMES`);
         }
@@ -350,7 +379,7 @@ export function SlotCabinet({
     });
     if (balance < cost) {
       setMessage("Insufficient balance.");
-      setAutoplayRemaining(0);
+      updateAutoplay(0);
       return;
     }
 
@@ -379,7 +408,7 @@ export function SlotCabinet({
         setMessage(
           err === "insufficient_credits" ? "Insufficient balance." : err,
         );
-        setAutoplayRemaining(0);
+        updateAutoplay(0);
         return;
       }
 
@@ -387,7 +416,7 @@ export function SlotCabinet({
     } catch {
       setPhase("IDLE");
       setMessage("Network error — try again.");
-      setAutoplayRemaining(0);
+      updateAutoplay(0);
     }
   }, [
     authenticated,
@@ -397,6 +426,7 @@ export function SlotCabinet({
     featureSpins,
     phase,
     revealSpin,
+    updateAutoplay,
   ]);
 
   function onSpinOrSkip() {
@@ -409,25 +439,37 @@ export function SlotCabinet({
   }
 
   useEffect(() => {
+    if (!autoplayReady) return;
     if (autoplayRemaining === 0) return;
     if (phase !== "IDLE") return;
-    if (featureSession) {
-      setAutoplayRemaining(0);
+    // Pause base autoplay while overlays / free games run.
+    if (
+      featureSession ||
+      pendingIntro ||
+      rankUpOpen ||
+      rankUpSpin ||
+      rankUpResult ||
+      winDialog
+    ) {
       return;
     }
     const cost = resolveSpinDebit({ bet, featureSpins });
     if (!authenticated || balance < cost) {
-      setAutoplayRemaining(0);
+      updateAutoplay(0);
       return;
     }
     const timer = setTimeout(() => {
-      setAutoplayRemaining((n) =>
-        n === GAME_CONFIG.autoplayInfinite ? n : Math.max(0, n - 1),
-      );
+      setAutoplayRemaining((n) => {
+        const next =
+          n === GAME_CONFIG.autoplayInfinite ? n : Math.max(0, n - 1);
+        persistAutoplay(next);
+        return next;
+      });
       void requestSpin();
     }, 350);
     return () => clearTimeout(timer);
   }, [
+    autoplayReady,
     autoplayRemaining,
     phase,
     authenticated,
@@ -436,109 +478,184 @@ export function SlotCabinet({
     featureSpins,
     requestSpin,
     featureSession,
+    pendingIntro,
+    rankUpOpen,
+    rankUpSpin,
+    rankUpResult,
+    winDialog,
+    updateAutoplay,
   ]);
 
-  // Auto-continue feature spins
+  // Resume free-game chain after reload / when session is active but idle.
+  useEffect(() => {
+    if (!featureSession) return;
+    if (phase !== "IDLE") return;
+    if (pendingIntro || rankUpOpen || rankUpSpin || rankUpResult || winDialog)
+      return;
+    setPhase("FEATURE_SPINNING");
+  }, [
+    featureSession,
+    phase,
+    pendingIntro,
+    rankUpOpen,
+    rankUpSpin,
+    rankUpResult,
+    winDialog,
+  ]);
+
+  // Auto-continue feature spins (always — free games chain)
   useEffect(() => {
     if (!featureSession) return;
     if (phase !== "FEATURE_SPINNING") return;
-    if (pendingIntro || rankUpOpen || rankUpResult || winDialog) return;
+    if (pendingIntro || rankUpOpen || rankUpSpin || rankUpResult || winDialog)
+      return;
     const timer = setTimeout(() => {
       void requestSpin();
-    }, 600);
+    }, autoplayActive ? 350 : 600);
     return () => clearTimeout(timer);
   }, [
     featureSession,
     phase,
     pendingIntro,
     rankUpOpen,
+    rankUpSpin,
     rankUpResult,
     winDialog,
     requestSpin,
+    autoplayActive,
   ]);
+
+  // Autoplay: auto-dismiss feature intro
+  useEffect(() => {
+    if (!autoplayActive || !pendingIntro) return;
+    const timer = setTimeout(
+      () => {
+        setPendingIntro(null);
+        setPhase("FEATURE_SPINNING");
+      },
+      turbo === "TURBO" ? 500 : 1100,
+    );
+    return () => clearTimeout(timer);
+  }, [autoplayActive, pendingIntro, turbo]);
 
   useEffect(() => {
     setBalance(credits);
   }, [credits]);
 
-  async function handleRankUp(action: "keep" | "try") {
-    setRankUpBusy(true);
-    try {
-      const res = await fetch("/api/game/rank-up", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          clientRequestId: crypto.randomUUID(),
-        }),
-      });
-      const data = await res.json();
-      if (action === "try" && data.outcome) {
-        AudioManager.play("rank-up");
-        const prevFeatureWin = featureSession?.featureWin ?? 0;
+  const handleRankUp = useCallback(
+    async (action: "keep" | "try") => {
+      setRankUpBusy(true);
+      try {
+        const res = await fetch("/api/game/rank-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            clientRequestId: crypto.randomUUID(),
+          }),
+        });
+        const data = await res.json();
+        if (action === "try" && data.outcome) {
+          AudioManager.play("rank-up");
+          const prevFeatureWin = featureSession?.featureWin ?? 0;
+          const segmentId =
+            typeof data.outcome.segmentId === "string"
+              ? data.outcome.segmentId
+              : "ru_end";
 
-        if (data.outcome.type === "upgrade") {
-          const to = data.outcome.to as FeatureType;
-          const spins = data.outcome.spins as number;
-          setRankUpResult({
-            kind: "upgrade",
-            title: data.outcome.label ?? "RANK UP",
-            subtitle: `${GAME_CONFIG.featureMeta[to].title} · ${spins} spins`,
-            apply: () => {
-              setPendingIntro({ type: to, spins });
-              setFeatureSession({
-                type: to,
-                spinsRemaining: spins,
-                spinsTotal: spins,
-                featureWin: 0,
-              });
-              inFeatureRef.current = true;
-              setMessage(`RANK UP → ${data.outcome.label}`);
-            },
-          });
-        } else if (data.outcome.type === "end") {
-          setRankUpResult({
-            kind: "end",
-            title: data.outcome.label ?? "END SERIES",
-            subtitle: "No upgrade this time — back to the cabinet.",
-            apply: () => {
-              setFeatureSession(null);
-              inFeatureRef.current = false;
-              setMessage("Series ended");
-              setPhase("IDLE");
-            },
-          });
-        } else {
-          const spins = data.outcome.spins as number;
-          const featureType = data.outcome.featureType as FeatureType;
-          setRankUpResult({
-            kind: "spins",
-            title: data.outcome.label ?? `+${spins} SPINS`,
-            subtitle: `${spins} more spins in ${GAME_CONFIG.featureMeta[featureType].title}`,
-            apply: () => {
-              setFeatureSession({
-                type: featureType,
-                spinsRemaining: spins,
-                spinsTotal: spins,
-                featureWin: prevFeatureWin,
-              });
-              inFeatureRef.current = true;
-              setMessage(`+${spins} feature spins`);
-              setPhase("FEATURE_SPINNING");
-            },
-          });
+          let result: RankUpResultPayload & { apply: () => void };
+
+          if (data.outcome.type === "upgrade") {
+            const to = data.outcome.to as FeatureType;
+            const spins = data.outcome.spins as number;
+            result = {
+              kind: "upgrade",
+              title: data.outcome.label ?? "RANK UP",
+              subtitle: `${GAME_CONFIG.featureMeta[to].title} · ${spins} spins`,
+              apply: () => {
+                setPendingIntro({ type: to, spins });
+                setFeatureSession({
+                  type: to,
+                  spinsRemaining: spins,
+                  spinsTotal: spins,
+                  featureWin: 0,
+                });
+                inFeatureRef.current = true;
+                setMessage(`RANK UP → ${data.outcome.label}`);
+              },
+            };
+          } else if (data.outcome.type === "end") {
+            result = {
+              kind: "end",
+              title: data.outcome.label ?? "END SERIES",
+              subtitle: "No upgrade this time — back to the cabinet.",
+              apply: () => {
+                setFeatureSession(null);
+                inFeatureRef.current = false;
+                setMessage("Series ended");
+                setPhase("IDLE");
+              },
+            };
+          } else {
+            const spins = data.outcome.spins as number;
+            const featureType = data.outcome.featureType as FeatureType;
+            result = {
+              kind: "spins",
+              title: data.outcome.label ?? `+${spins} SPINS`,
+              subtitle: `${spins} more spins in ${GAME_CONFIG.featureMeta[featureType].title}`,
+              apply: () => {
+                setFeatureSession({
+                  type: featureType,
+                  spinsRemaining: spins,
+                  spinsTotal: spins,
+                  featureWin: prevFeatureWin,
+                });
+                inFeatureRef.current = true;
+                setMessage(`+${spins} feature spins`);
+                setPhase("FEATURE_SPINNING");
+              },
+            };
+          }
+
+          setRankUpOpen(false);
+          setRankUpSpin({ segmentId, result });
+          return;
+        }
+      } finally {
+        setRankUpBusy(false);
+        if (action === "keep") {
+          setRankUpOpen(false);
+          setFeatureSession(null);
+          inFeatureRef.current = false;
+          setPhase("IDLE");
         }
       }
-    } finally {
-      setRankUpBusy(false);
-      setRankUpOpen(false);
-      if (action === "keep") {
-        setFeatureSession(null);
-        inFeatureRef.current = false;
-        setPhase("IDLE");
-      }
-    }
-  }
+    },
+    [featureSession?.featureWin],
+  );
+
+  // Autoplay: always try Rank Up
+  useEffect(() => {
+    if (!autoplayActive || !rankUpOpen || rankUpBusy) return;
+    const timer = setTimeout(() => {
+      void handleRankUp("try");
+    }, turbo === "TURBO" ? 350 : 700);
+    return () => clearTimeout(timer);
+  }, [autoplayActive, rankUpOpen, rankUpBusy, handleRankUp, turbo]);
+
+  // Autoplay: auto-continue after Rank Up result
+  useEffect(() => {
+    if (!autoplayActive || !rankUpResult) return;
+    const timer = setTimeout(
+      () => {
+        const apply = rankUpResult.apply;
+        setRankUpResult(null);
+        apply();
+      },
+      turbo === "TURBO" ? 600 : 1200,
+    );
+    return () => clearTimeout(timer);
+  }, [autoplayActive, rankUpResult, turbo]);
 
   return (
     <div className="relative flex min-h-full flex-1 flex-col">
@@ -667,12 +784,12 @@ export function SlotCabinet({
                 setMessage("Sign in with Discord to enable autoplay.");
                 return;
               }
-              setAutoplayRemaining(count);
+              updateAutoplay(count);
             }}
-            onStopAutoplay={() => setAutoplayRemaining(0)}
+            onStopAutoplay={() => updateAutoplay(0)}
           />
         ) : (
-          <div className="flex w-full max-w-3xl items-center justify-center gap-3 rounded-2xl border border-violet-400/20 bg-black/40 px-4 py-3">
+          <div className="flex w-full max-w-3xl flex-wrap items-center justify-center gap-3 rounded-2xl border border-violet-400/20 bg-black/40 px-4 py-3">
             <button
               type="button"
               onClick={onSpinOrSkip}
@@ -689,6 +806,19 @@ export function SlotCabinet({
             >
               Turbo {turbo === "TURBO" ? "ON" : "OFF"}
             </button>
+            {autoplayActive ? (
+              <button
+                type="button"
+                onClick={() => updateAutoplay(0)}
+                className="rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-100"
+              >
+                Stop Auto (
+                {autoplayRemaining === GAME_CONFIG.autoplayInfinite
+                  ? "∞"
+                  : autoplayRemaining}
+                )
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -733,10 +863,29 @@ export function SlotCabinet({
       {rankUpOpen ? (
         <RankUpOffer
           current={lastFeatureTypeRef.current ?? "overtime"}
-          busy={rankUpBusy}
+          busy={rankUpBusy || autoplayActive}
+          autoTrying={autoplayActive}
           onKeep={() => void handleRankUp("keep")}
           onTry={() => void handleRankUp("try")}
         />
+      ) : null}
+
+      {rankUpSpin ? (
+        <div className="fixed inset-0 z-[55] flex flex-col items-center justify-center gap-4 bg-black/80 px-4 backdrop-blur-sm">
+          <p className="text-xs uppercase tracking-[0.35em] text-violet-200/70">
+            Rank Up Wheel
+          </p>
+          <RankWheel
+            key={rankUpSpin.segmentId}
+            kind="rank_up"
+            segmentId={rankUpSpin.segmentId}
+            turbo={turbo === "TURBO"}
+            onComplete={() => {
+              setRankUpResult(rankUpSpin.result);
+              setRankUpSpin(null);
+            }}
+          />
+        </div>
       ) : null}
 
       {rankUpResult ? (
